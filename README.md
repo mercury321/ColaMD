@@ -57,11 +57,17 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 ## Screenshots
 
 <p align="center">
-  <img src="docs/images/mercury-editor.png" alt="ColaMD Mercury CE with Chinese menus and editor" width="49%">
-  <img src="docs/images/mercury-fonts.png" alt="ColaMD Mercury CE system font picker with live preview" width="49%">
+  <img src="docs/images/mercury-welcome.png" alt="ColaMD Mercury CE welcome screen" width="49%">
+  <img src="docs/images/mercury-recent-files.png" alt="ColaMD Mercury CE recent files" width="49%">
 </p>
 
-<p align="center"><em>ColaMD Mercury CE: Chinese menus, system font selection, and multi-line live preview.</em></p>
+<p align="center">
+  <img src="docs/images/mercury-help-menu.png" alt="ColaMD Mercury CE Help menu" width="32%">
+  <img src="docs/images/mercury-font-menu.png" alt="ColaMD Mercury CE font menu" width="32%">
+  <img src="docs/images/mercury-font-picker.png" alt="ColaMD Mercury CE system font picker with live preview" width="32%">
+</p>
+
+<p align="center"><em>ColaMD Mercury CE: version label, recent files, default-editor entry, font presets, and system font preview.</em></p>
 
 ## Works with your Markdown workflow
 

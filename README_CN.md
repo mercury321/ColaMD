@@ -57,11 +57,17 @@ Markdown 已经成为 AI 时代写作、记录、文档和协作的事实标准�
 ## 截图
 
 <p align="center">
-  <img src="docs/images/mercury-editor.png" alt="ColaMD Mercury定制版中文菜单与编辑器" width="49%">
-  <img src="docs/images/mercury-fonts.png" alt="ColaMD Mercury定制版系统字体选择与实时预览" width="49%">
+  <img src="docs/images/mercury-welcome.png" alt="ColaMD Mercury定制版欢迎页" width="49%">
+  <img src="docs/images/mercury-recent-files.png" alt="ColaMD Mercury定制版最近打开文件" width="49%">
 </p>
 
-<p align="center"><em>ColaMD Mercury定制版：中文菜单、系统字体选择与多行实时预览。</em></p>
+<p align="center">
+  <img src="docs/images/mercury-help-menu.png" alt="ColaMD Mercury定制版帮助菜单" width="32%">
+  <img src="docs/images/mercury-font-menu.png" alt="ColaMD Mercury定制版正文字体菜单" width="32%">
+  <img src="docs/images/mercury-font-picker.png" alt="ColaMD Mercury定制版系统字体选择与实时预览" width="32%">
+</p>
+
+<p align="center"><em>ColaMD Mercury定制版：版本标识、最近文件、默认编辑器入口、正文预设字体与系统字体多行预览。</em></p>
 
 ## 与现有 Markdown 工作流配合
 
