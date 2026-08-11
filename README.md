@@ -36,6 +36,9 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 - **Live font preview** — Preview headings, body text, bold text, quotes, and mixed Chinese/English content.
 - **Persistent font settings** — The selected body font is remembered between launches.
 - **Improved Windows layout** — Removes the redundant blank space below the native menu.
+- **Recent files** — Keeps up to 12 recently opened Markdown files under File > Recent Files.
+- **Startup restore** — Choose whether to reopen the last document when ColaMD Mercury starts.
+- **Default editor entry point** — Windows users can open the system default-app settings from Help > Set as Default Markdown Editor.
 
 - **Live Agent Sync** — Changes made by Claude Code, Cursor, Copilot, or other AI agents appear in the editor in real time.
 - **Agent Activity Indicator** — A subtle titlebar dot shows when an agent is writing and when it has finished.

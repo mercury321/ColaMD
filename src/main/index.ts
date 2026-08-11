@@ -12,10 +12,95 @@ const APP_NAME = 'ColaMD Mercury'
 const themesDir = join(app.getPath('home'), '.colamd', 'themes')
 
 const MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.mdown', '.mkd']
+const MAX_RECENT_FILES = 12
 const FALLBACK_FONT_FAMILIES = [
   'Arial', 'Georgia', 'Microsoft YaHei', 'Noto Sans CJK SC',
   'Noto Serif CJK SC', 'Source Han Sans SC', 'Source Han Serif SC'
 ]
+
+let recentFiles: string[] = []
+let restoreLastFile = true
+
+function recentFilesPath(): string {
+  return join(app.getPath('userData'), 'recent-files.json')
+}
+
+function settingsPath(): string {
+  return join(app.getPath('userData'), 'settings.json')
+}
+
+function sameFilePath(left: string, right: string): boolean {
+  return process.platform === 'win32'
+    ? left.toLowerCase() === right.toLowerCase()
+    : left === right
+}
+
+async function loadRecentFiles(): Promise<void> {
+  try {
+    const parsed: unknown = JSON.parse(await readFile(recentFilesPath(), 'utf-8'))
+    if (!Array.isArray(parsed)) return
+    recentFiles = parsed
+      .filter((filePath): filePath is string => typeof filePath === 'string' && existsSync(filePath))
+      .slice(0, MAX_RECENT_FILES)
+  } catch {
+    recentFiles = []
+  }
+}
+
+async function saveRecentFiles(): Promise<void> {
+  try {
+    await mkdir(app.getPath('userData'), { recursive: true })
+    await writeFile(recentFilesPath(), JSON.stringify(recentFiles, null, 2), 'utf-8')
+  } catch {
+    // Recent files are a convenience; failure should not affect editing.
+  }
+}
+
+async function loadSettings(): Promise<void> {
+  try {
+    const parsed: unknown = JSON.parse(await readFile(settingsPath(), 'utf-8'))
+    if (typeof parsed === 'object' && parsed !== null && 'restoreLastFile' in parsed) {
+      const value = (parsed as { restoreLastFile?: unknown }).restoreLastFile
+      if (typeof value === 'boolean') restoreLastFile = value
+    }
+  } catch {
+    restoreLastFile = true
+  }
+}
+
+async function saveSettings(): Promise<void> {
+  try {
+    await mkdir(app.getPath('userData'), { recursive: true })
+    await writeFile(settingsPath(), JSON.stringify({ restoreLastFile }, null, 2), 'utf-8')
+  } catch {
+    // Settings are a convenience; failure should not affect editing.
+  }
+}
+
+async function addRecentFile(filePath: string): Promise<void> {
+  if (!filePath || !existsSync(filePath)) return
+  recentFiles = [filePath, ...recentFiles.filter((item) => !sameFilePath(item, filePath))]
+    .filter((item) => existsSync(item))
+    .slice(0, MAX_RECENT_FILES)
+  await saveRecentFiles()
+  if (app.isReady()) buildMenu()
+}
+
+function clearRecentFiles(): void {
+  recentFiles = []
+  void saveRecentFiles()
+  buildMenu()
+}
+
+function openRecentFile(filePath: string): void {
+  if (!existsSync(filePath)) {
+    recentFiles = recentFiles.filter((item) => !sameFilePath(item, filePath))
+    void saveRecentFiles()
+    buildMenu()
+    return
+  }
+  openFile(filePath)
+}
 
 function decodeWindowsOutput(output: Buffer): string {
   if (output.length >= 2 && output[0] === 0xff && output[1] === 0xfe) {
@@ -356,6 +441,7 @@ function loadFileInWindow(win: BrowserWindow, filePath: string): void {
       state.filePath = filePath
       watchFile(win, state)
       updateTitle(win)
+      void addRecentFile(filePath)
       win.webContents.send('file-opened', { path: filePath, content: resolveImagePaths(data, filePath) })
     })
     .catch(() => {})
@@ -410,6 +496,7 @@ async function saveToPath(win: BrowserWindow, filePath: string, content: string)
     state.filePath = filePath
     watchFile(win, state)
     updateTitle(win)
+    void addRecentFile(filePath)
     return true
   } catch {
     return false
@@ -451,6 +538,7 @@ ipcMain.handle('open-file', async (event) => {
       state.filePath = filePath
       watchFile(win, state)
       updateTitle(win)
+      void addRecentFile(filePath)
       win.webContents.send('file-opened', { path: filePath, content: resolveImagePaths(content, filePath) })
       return { path: filePath, content }
     } catch {
@@ -474,6 +562,7 @@ ipcMain.handle('open-file-path', async (event, filePath: string) => {
       state.filePath = filePath
       watchFile(win, state)
       updateTitle(win)
+      void addRecentFile(filePath)
       win.webContents.send('file-opened', { path: filePath, content: resolveImagePaths(content, filePath) })
       return { path: filePath, content }
     } catch {
@@ -850,6 +939,18 @@ function sendToFocused(channel: string, ...args: unknown[]): void {
 function buildMenu(): void {
   const isMac = process.platform === 'darwin'
 
+  const recentFileSubmenu: Electron.MenuItemConstructorOptions[] = recentFiles.length > 0
+    ? [
+        ...recentFiles.map((filePath) => ({
+          label: `${basename(filePath)}  —  ${basename(dirname(filePath))}`,
+          toolTip: filePath,
+          click: () => openRecentFile(filePath)
+        })),
+        { type: 'separator' as const },
+        { label: '清空最近记录', click: () => clearRecentFiles() }
+      ]
+    : [{ label: '暂无最近打开的文件', enabled: false }]
+
   // Scan custom themes synchronously for menu building
   const customThemeItems: Electron.MenuItemConstructorOptions[] = []
   try {
@@ -928,6 +1029,19 @@ function buildMenu(): void {
           label: '打开…',
           accelerator: 'CmdOrCtrl+O',
           click: () => sendToFocused('menu-open')
+        },
+        {
+          label: '最近打开',
+          submenu: recentFileSubmenu
+        },
+        {
+          label: '启动时打开上次文档',
+          type: 'checkbox',
+          checked: restoreLastFile,
+          click: (item) => {
+            restoreLastFile = item.checked
+            void saveSettings()
+          }
         },
         { type: 'separator' },
         {
@@ -1017,6 +1131,13 @@ function buildMenu(): void {
           accelerator: 'CmdOrCtrl+Shift+/',
           click: () => openCheatsheet()
         },
+        ...(process.platform === 'win32' ? [
+          { type: 'separator' as const },
+          {
+            label: '设置为默认 Markdown 编辑器…',
+            click: () => { void shell.openExternal('ms-settings:defaultapps') }
+          }
+        ] : []),
         {
           label: `关于 ${APP_NAME}`,
           click: () => shell.openExternal('https://github.com/mercury321/ColaMD')
@@ -1030,7 +1151,25 @@ function buildMenu(): void {
 
 // App lifecycle
 
-app.whenReady().then(() => {
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+
+if (!gotSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    const args = commandLine.slice(app.isPackaged ? 1 : 2)
+    const fileArgs = args.filter((arg) => !arg.startsWith('-'))
+    for (const filePath of fileArgs) openFile(filePath)
+    const focusedWindow = BrowserWindow.getAllWindows()[0]
+    if (focusedWindow) {
+      if (focusedWindow.isMinimized()) focusedWindow.restore()
+      focusedWindow.focus()
+    }
+  })
+
+app.whenReady().then(async () => {
+  await loadRecentFiles()
+  await loadSettings()
   ensureThemesDir()
   buildMenu()
 
@@ -1046,6 +1185,8 @@ app.whenReady().then(() => {
       createWindow(fp)
     }
     pendingFilePaths = []
+  } else if (restoreLastFile && recentFiles.length > 0) {
+    createWindow(recentFiles[0])
   } else {
     createWindow()
   }
@@ -1067,3 +1208,4 @@ app.on('open-file', (event, filePath) => {
     pendingFilePaths.push(filePath)
   }
 })
+}

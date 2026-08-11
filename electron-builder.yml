@@ -22,11 +22,19 @@ afterPack: ./scripts/afterPack.js
 
 fileAssociations:
   - ext: md
-    name: Markdown Document
+    name: ColaMD Mercury Markdown Document
     role: Editor
     mimeType: text/markdown
   - ext: markdown
-    name: Markdown Document
+    name: ColaMD Mercury Markdown Document
+    role: Editor
+    mimeType: text/markdown
+  - ext: mdown
+    name: ColaMD Mercury Markdown Document
+    role: Editor
+    mimeType: text/markdown
+  - ext: mkd
+    name: ColaMD Mercury Markdown Document
     role: Editor
     mimeType: text/markdown
 
