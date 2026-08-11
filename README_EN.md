@@ -41,7 +41,7 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 - **Default editor entry point** — Windows users can open the system default-app settings from Help > Set as Default Markdown Editor.
 
 - **Live Agent Sync** — Changes made by Claude Code, Cursor, Copilot, or other AI agents appear in the editor in real time.
-- **Status Indicator** — The titlebar dot is blue for unsaved changes and off after saving; it retains orange and green states while an agent edits.
+- **Status Indicator** — The titlebar dot is blue for unsaved changes and off after saving. The app's own saves do not trigger the Agent indicator, which retains its orange and green states for external edits.
 - **True WYSIWYG Editing** — Type Markdown and see rich text directly. No split-pane preview.
 - **Same-Directory File List** — Discover and switch between Markdown files in the current folder. Files created or removed by your agent appear automatically.
 - **Task Lists** — Click checkboxes to complete tasks, or use the keyboard shortcut.

@@ -221,6 +221,7 @@ interface WindowState {
   siblingsTimer: ReturnType<typeof setTimeout> | null
   agentState: 'idle' | 'active' | 'cooldown'
   lastExternalChange: number
+  ignoreWatchUntil: number
   agentCooldownTimer: ReturnType<typeof setTimeout> | null
 }
 
@@ -241,6 +242,7 @@ function getState(win: BrowserWindow): WindowState {
       siblingsTimer: null,
       agentState: 'idle',
       lastExternalChange: 0,
+      ignoreWatchUntil: 0,
       agentCooldownTimer: null
     }
     windowStates.set(win.id, state)
@@ -324,6 +326,12 @@ async function autoSaveDocument(win: BrowserWindow, content: string): Promise<st
       const destination = state.autoSavePath && dirname(state.autoSavePath) === directory
         ? state.autoSavePath
         : join(directory, fileName)
+      // Usually an auto-save is a separate draft in Out. If the current file
+      // itself is in that folder, writing the draft touches the watched file;
+      // mark that event as internal so the Agent indicator is not triggered.
+      if (destination === state.filePath) {
+        state.ignoreWatchUntil = Date.now() + 1500
+      }
       await writeFile(destination, content, 'utf-8')
       state.autoSavePath = destination
       return destination
@@ -503,6 +511,7 @@ function stopWatching(state: WindowState): void {
   }
   state.agentState = 'idle'
   state.lastExternalChange = 0
+  state.ignoreWatchUntil = 0
 }
 
 function transitionAgentState(win: BrowserWindow, state: WindowState, newState: 'idle' | 'active' | 'cooldown'): void {
@@ -559,6 +568,9 @@ function watchFile(win: BrowserWindow, state: WindowState): void {
 
   const onExternalChange = (): void => {
     if (state.isInternalSave) return
+    // Our own save or auto-save may produce a delayed filesystem event. Do not
+    // treat that event as an external Agent edit or reload the current document.
+    if (Date.now() < state.ignoreWatchUntil) return
     if (Date.now() < suppressUntil) return
 
     // Agent activity detection
@@ -707,6 +719,7 @@ async function saveToPath(win: BrowserWindow, filePath: string, content: string)
   const state = getState(win)
   try {
     state.isInternalSave = true
+    state.ignoreWatchUntil = Date.now() + 1500
     await writeFile(filePath, content, 'utf-8')
     state.filePath = filePath
     watchFile(win, state)
