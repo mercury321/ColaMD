@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, clipboard } from 'electron'
 import { join, basename, dirname, extname } from 'path'
 import { readFile, writeFile, readdir, copyFile, mkdir } from 'fs/promises'
 import { watch, FSWatcher, existsSync, readdirSync, readFileSync } from 'fs'
@@ -215,6 +215,53 @@ function getState(win: BrowserWindow): WindowState {
 
 function getWinFromEvent(event: Electron.IpcMainInvokeEvent): BrowserWindow | null {
   return BrowserWindow.fromWebContents(event.sender)
+}
+
+async function copySelectionAsFormatted(win: BrowserWindow): Promise<void> {
+  const selection: unknown = await win.webContents.executeJavaScript(`
+    (() => {
+      const selected = window.getSelection()
+      if (!selected || selected.rangeCount === 0 || selected.isCollapsed) return null
+      const wrapper = document.createElement('div')
+      wrapper.appendChild(selected.getRangeAt(0).cloneContents())
+      return { text: selected.toString(), html: wrapper.innerHTML }
+    })()
+  `)
+
+  if (!selection || typeof selection !== 'object') return
+  const { text, html } = selection as { text?: unknown; html?: unknown }
+  if (typeof text !== 'string' || !text) return
+  clipboard.write({ text, html: typeof html === 'string' ? html : text })
+}
+
+function showEditorContextMenu(win: BrowserWindow, params: Electron.ContextMenuParams): void {
+  const hasSelection = Boolean(params.selectionText.trim())
+  const items: Electron.MenuItemConstructorOptions[] = []
+
+  if (params.linkURL.startsWith('https://') || params.linkURL.startsWith('http://')) {
+    items.push({ label: '在浏览器中打开链接', click: () => { void shell.openExternal(params.linkURL) } })
+  }
+
+  if (hasSelection) {
+    if (items.length > 0) items.push({ type: 'separator' })
+    items.push(
+      { label: '复制为纯文本', click: () => clipboard.writeText(params.selectionText) },
+      { label: '复制为带格式的文本', click: () => { void copySelectionAsFormatted(win) } },
+      { type: 'separator' }
+    )
+  }
+
+  if (params.editFlags.canCut) items.push({ label: '剪切', click: () => win.webContents.cut() })
+  if (params.editFlags.canPaste) items.push({ label: '粘贴', click: () => win.webContents.paste() })
+  if (params.editFlags.canSelectAll) items.push({ label: '全选', click: () => win.webContents.selectAll() })
+
+  if (items.length > 0 && items[items.length - 1].type !== 'separator') items.push({ type: 'separator' })
+  items.push(
+    { label: '查找…', accelerator: 'CmdOrCtrl+F', click: () => win.webContents.send('editor:search') },
+    { label: '插入公式…', accelerator: 'CmdOrCtrl+Shift+E', click: () => win.webContents.send('editor:math') }
+  )
+
+  Menu.buildFromTemplate(items).popup({ window: win })
 }
 
 function createWindow(filePath?: string, initialContent?: string): BrowserWindow {
@@ -981,6 +1028,12 @@ function buildMenu(): void {
   themeSubmenu.push({ type: 'separator' }, {
     label: '导入主题…',
     click: () => sendToFocused('menu-import-theme')
+  })
+
+  win.webContents.on('context-menu', (event, params) => {
+    if (!params.isEditable && !params.selectionText && !params.linkURL) return
+    event.preventDefault()
+    showEditorContextMenu(win, params)
   })
 
   const fontSubmenu: Electron.MenuItemConstructorOptions[] = [
