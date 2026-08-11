@@ -61,7 +61,7 @@ body.platform-win32 #editor {
   height: 8px;
   border-radius: 50%;
   background: var(--text-muted);
-  opacity: 0.3;
+  opacity: 0;
   -webkit-app-region: no-drag;
   transition: background 0.3s ease, opacity 0.3s ease;
 }
@@ -127,8 +127,24 @@ body.platform-win32 #editor {
 }
 
 #agent-dot.unsaved {
+  background: #2878d4;
+  opacity: 1;
+}
+
+#agent-dot.agent-active {
   background: #e8913a;
   opacity: 1;
+  animation: agent-breathe 2s ease-in-out infinite;
+}
+
+#agent-dot.agent-cooldown {
+  background: #3dba5c;
+  opacity: 1;
+}
+
+@keyframes agent-breathe {
+  0%, 100% { opacity: 0.45; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.05); }
 }
 
 #editor {

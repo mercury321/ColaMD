@@ -130,6 +130,7 @@ const fileToggleBtnEl = () => document.getElementById('file-toggle-btn') as HTML
 let currentFilePath: string | null = null
 let dirty = false
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+let agentActivityState: 'idle' | 'active' | 'cooldown' = 'idle'
 // Milkdown's markdownUpdated listener fires 200ms-debounced AFTER a doc change,
 // so a programmatic load would spuriously mark the doc dirty unless we keep a
 // suppression window long enough to cover that debounce.
@@ -139,11 +140,23 @@ let manualHidden = localStorage.getItem('file-panel-hidden') === '1'
 function setDirtyState(value: boolean): void {
   dirty = value
   window.electronAPI.setDocumentDirty(value)
+  updateStatusDot()
+}
+
+function updateStatusDot(): void {
   const statusDot = document.getElementById('agent-dot')
-  if (statusDot) {
-    statusDot.classList.toggle('unsaved', value)
-    statusDot.setAttribute('title', value ? '有未保存的修改' : '已保存')
-  }
+  if (!statusDot) return
+
+  statusDot.className = agentActivityState === 'active'
+    ? 'agent-active'
+    : agentActivityState === 'cooldown'
+      ? 'agent-cooldown'
+      : dirty ? 'unsaved' : ''
+  statusDot.setAttribute('title', agentActivityState === 'active'
+    ? 'Agent 正在编辑'
+    : agentActivityState === 'cooldown'
+      ? 'Agent 刚完成编辑'
+      : dirty ? '有未保存的修改' : '已保存')
 }
 
 function scheduleAutoSave(): void {
@@ -344,6 +357,13 @@ async function init(): Promise<void> {
   api.onMenuImportTheme(async () => {
     const result = await api.loadCustomTheme()
     if (result) applyTheme(`custom:${result.name}`, result.css)
+  })
+
+  api.onAgentActivity((state) => {
+    if (state === 'active' || state === 'cooldown' || state === 'idle') {
+      agentActivityState = state
+      updateStatusDot()
+    }
   })
 
   document.addEventListener('dragover', (e) => e.preventDefault())
