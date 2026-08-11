@@ -1,4 +1,4 @@
-# ColaMD
+# ColaMD Mercury
 
 > 一款免费、优雅的 Markdown 编辑器，支持 AI Agent 改动实时同步。
 
@@ -21,7 +21,7 @@ Markdown 已经成为 AI 时代写作、记录、文档和协作的事实标准�
 如果 ColaMD 对你有帮助，欢迎给我们一个 ⭐ Star 支持。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/release/marswaveai/colamd.svg)](https://github.com/marswaveai/colamd/releases)
+[![GitHub release](https://img.shields.io/github/release/mercury321/colamd.svg)](https://github.com/mercury321/ColaMD/releases)
 
 [下载](#下载) | [功能](#功能) | [开发](#开发)
 
@@ -66,7 +66,7 @@ ColaMD 不要求你改变现有习惯，也适合与 Obsidian、Typora、VS Code
 
 ## 下载
 
-> 查看 [Releases](https://github.com/marswaveai/colamd/releases) 获取最新构建。
+> 查看 [Releases](https://github.com/mercury321/ColaMD/releases) 获取 ColaMD Mercury 定制版构建。
 
 | 平台 | 格式 |
 |------|------|

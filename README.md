@@ -1,4 +1,4 @@
-# ColaMD
+# ColaMD Mercury
 
 > A free, elegant Markdown editor for humans and AI agents — with real-time sync for AI-generated changes.
 
@@ -21,7 +21,7 @@ Our goal is clear: make ColaMD the best free Markdown editor, and make it a reli
 If ColaMD is useful to you, please give the project a ⭐ Star.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/release/marswaveai/colamd.svg)](https://github.com/marswaveai/colamd/releases)
+[![GitHub release](https://img.shields.io/github/release/mercury321/colamd.svg)](https://github.com/mercury321/ColaMD/releases)
 
 [Download](#download) | [Features](#features) | [Development](#development)
 
@@ -66,7 +66,7 @@ ColaMD does not ask you to change your habits. It works well alongside Obsidian,
 
 ## Download
 
-> Check [Releases](https://github.com/marswaveai/colamd/releases) for the latest builds.
+> Check [Releases](https://github.com/mercury321/ColaMD/releases) for the latest ColaMD Mercury custom builds.
 
 | Platform | Format |
 |----------|--------|
