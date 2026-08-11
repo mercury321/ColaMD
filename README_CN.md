@@ -4,7 +4,7 @@
 
 > **ColaMD Mercury定制版**：这是 Mercury321 基于 [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD) 制作的 Fork 版本，包含中文菜单、系统字体选择、字体实时预览和 Windows 界面布局优化。
 
-**Language / 语言: [English](README.md) · [中文](README_CN.md)** · [官网](https://colamd.com/)
+**Language / 语言: [English](README_EN.md) · [中文](README.md)** · [官网](https://colamd.com/)
 
 Markdown 已经成为 AI 时代写作、记录、文档和协作的事实标准。但很多人的电脑上依然没有一个免费、好看、好用的 Markdown 阅读器/编辑器。
 

@@ -1,106 +1,106 @@
-# ColaMD Mercury CE
+# ColaMD Mercury定制版
 
-> A free, elegant Markdown editor for humans and AI agents — with real-time sync for AI-generated changes.
+> 一款免费、优雅的 Markdown 编辑器，支持 AI Agent 改动实时同步。
 
-> **ColaMD Mercury CE**: A Mercury321 Fork of [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD), with Chinese menus, system font selection, live font previews, and improved Windows layout.
+> **ColaMD Mercury定制版**：这是 Mercury321 基于 [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD) 制作的 Fork 版本，包含中文菜单、系统字体选择、字体实时预览和 Windows 界面布局优化。
 
-**Language / 语言: [English](README.md) · [中文](README_CN.md)** · [Website](https://colamd.com/)
+**Language / 语言: [English](README_EN.md) · [中文](README.md)** · [官网](https://colamd.com/)
 
-Markdown has become the de facto standard for writing, note-taking, documentation, and collaboration in the age of AI. Yet many computers still don't have a free, beautiful, capable Markdown reader/editor.
+Markdown 已经成为 AI 时代写作、记录、文档和协作的事实标准。但很多人的电脑上依然没有一个免费、好看、好用的 Markdown 阅读器/编辑器。
 
-That's why I built ColaMD — an open-source, free, lightweight, and elegant Markdown editor.
+为此我开发了 ColaMD，一款开源、免费、轻量、优雅的 Markdown 编辑器。
 
-First and foremost, it is a simple, focused, capable Markdown editor: true WYSIWYG editing, themes, rich-text copy, smart line breaks, PDF export, and support for macOS, Windows, and Linux.
+它首先是一款简单、专注、好用的 Markdown 编辑器：所见即所得、主题切换、富文本复制、智能换行、PDF 导出，并支持 macOS、Windows 和 Linux。
 
-At the same time, ColaMD is friendly to AI agents. When Claude Code, Codex, Cola, or another agent edits an open `.md` file, ColaMD syncs the changes in real time. No closing the file, reopening it, or manual refresh.
+同时，ColaMD 也是一款对 AI Agent 友好的编辑器。当 Claude Code、Codex、Cola 或其他 Agent 修改正在打开的 `.md` 文件时，ColaMD 会实时同步改动。不需要关闭文件、重新打开，也不需要手动刷新。
 
-Since launching a few months ago, we have received enthusiastic feedback from the community. Thank you to everyone who has submitted Issues and Pull Requests, tested ColaMD, shared feedback, or joined the discussions. ColaMD is still growing — download it, try it, and tell us what you want it to become.
+上线几个月以来，我们收到了社区热情的反馈。感谢大家提交 Issue、Pull Request，以及参与测试、反馈和讨论的每一位朋友。ColaMD 还在继续成长，欢迎下载体验，也欢迎告诉我们你希望它变成什么样。
 
-Our goal is clear: make ColaMD the best free Markdown editor, and make it a reliable foundation for Markdown workflows in the age of AI.
+我们的目标很明确：把 ColaMD 做成最好用的免费 Markdown 编辑器，也让它成为 AI 时代 Markdown 工作流的一块可靠基础设施。
 
-If ColaMD is useful to you, please give the project a ⭐ Star.
+如果 ColaMD 对你有帮助，欢迎给我们一个 ⭐ Star 支持。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub release](https://img.shields.io/github/release/mercury321/colamd.svg)](https://github.com/mercury321/ColaMD/releases)
 
-[Download](#download) | [Features](#features) | [Development](#development)
+[下载](#下载) | [功能](#功能) | [开发](#开发)
 
 ---
 
-## Features
+## 功能
 
-### Mercury custom edition updates
+### Mercury 定制版更新
 
-- **Chinese menus** — File, Edit, View, Theme, and Help menus are localized.
-- **System font selection** — Browse, search, and select fonts installed on Windows.
-- **Live font preview** — Preview headings, body text, bold text, quotes, and mixed Chinese/English content.
-- **Persistent font settings** — The selected body font is remembered between launches.
-- **Improved Windows layout** — Removes the redundant blank space below the native menu.
-- **Recent files** — Keeps up to 12 recently opened Markdown files under File > Recent Files.
-- **Startup restore** — Choose whether to reopen the last document when ColaMD Mercury CE starts.
-- **Default editor entry point** — Windows users can open the system default-app settings from Help > Set as Default Markdown Editor.
+- **中文菜单** — 文件、编辑、视图、主题、帮助等菜单已完成中文化。
+- **系统字体选择** — 读取 Windows 已安装字体，支持搜索和列表选择。
+- **字体实时预览** — 通过多行标题、正文、粗体、引用和中英文混排预览字体效果。
+- **字体设置记忆** — 应用选择的正文字体会在下次启动时保留。
+- **Windows 布局优化** — 移除原生菜单下方多余空白，让编辑区从菜单下方自然开始。
+- **最近打开** — 在“文件 → 最近打开”中保留最近使用的 Markdown 文件，最多显示 12 条。
+- **启动恢复** — 可选择启动时自动载入上一次打开的文档。
+- **默认编辑器入口** — Windows 用户可从“帮助 → 设置为默认 Markdown 编辑器”进入系统设置。
 
-- **Live Agent Sync** — Changes made by Claude Code, Cursor, Copilot, or other AI agents appear in the editor in real time.
-- **Agent Activity Indicator** — A subtle titlebar dot shows when an agent is writing and when it has finished.
-- **True WYSIWYG Editing** — Type Markdown and see rich text directly. No split-pane preview.
-- **Same-Directory File List** — Discover and switch between Markdown files in the current folder. Files created or removed by your agent appear automatically.
-- **Task Lists** — Click checkboxes to complete tasks, or use the keyboard shortcut.
-- **Highlights & LaTeX** — Write `==highlighted text==` and render mathematical formulas with KaTeX.
-- **Search** — Find anything in the current document with ⌘/Ctrl+F.
-- **Smart Line Breaks** — Single newlines render as line breaks, matching how people and AI tools write Markdown.
-- **Rich Text Copy** — Copy content with formatting preserved into WeChat, email, and other rich-text editors.
-- **Themes** — Four built-in themes, downloadable themes, and custom CSS imports.
-- **PDF Export** — Turn your Markdown document into a PDF when you need a finished copy.
-- **Minimal by Design** — No toolbar, no permanent sidebar, no distractions.
-- **Cross-Platform** — Available for macOS, Windows, and Linux.
+- **实时 Agent 同步** — Claude Code、Cursor、Copilot 或其他 AI Agent 修改文件后，内容实时出现在编辑器中。
+- **Agent 活动指示器** — 标题栏小圆点显示 Agent 正在写入或已经完成。
+- **真正的所见即所得** — 输入 Markdown，直接看到富文本，无需分屏预览。
+- **同目录文件列表** — 发现并切换当前目录下的 Markdown 文件；Agent 新建或删除文件后自动更新。
+- **待办列表** — 直接点击复选框完成任务，也支持快捷键。
+- **高亮与 LaTeX** — 使用 `==高亮文本==`，并通过 KaTeX 渲染数学公式。
+- **文档搜索** — 使用 ⌘/Ctrl+F 快速查找内容。
+- **智能换行** — 单个换行直接渲染为换行，符合人类和 AI 工具写 Markdown 的习惯。
+- **富文本复制** — 复制后粘贴到公众号、微信、邮件等富文本编辑器，格式完整保留。
+- **主题** — 4 个内置主题、可下载主题，以及自定义 CSS 导入。
+- **PDF 导出** — 在需要交付时，将 Markdown 文档导出为 PDF。
+- **极简设计** — 没有工具栏，没有永久侧边栏，专注于内容本身。
+- **跨平台** — 支持 macOS、Windows 和 Linux。
 
-## Screenshots
+## 截图
 
 <p align="center">
-  <img src="docs/images/mercury-welcome.png" alt="ColaMD Mercury CE welcome screen" width="49%">
-  <img src="docs/images/mercury-recent-files.png" alt="ColaMD Mercury CE recent files" width="49%">
+  <img src="docs/images/mercury-welcome.png" alt="ColaMD Mercury定制版欢迎页" width="49%">
+  <img src="docs/images/mercury-recent-files.png" alt="ColaMD Mercury定制版最近打开文件" width="49%">
 </p>
 
 <p align="center">
-  <img src="docs/images/mercury-help-menu.png" alt="ColaMD Mercury CE Help menu" width="32%">
-  <img src="docs/images/mercury-font-menu.png" alt="ColaMD Mercury CE font menu" width="32%">
-  <img src="docs/images/mercury-font-picker.png" alt="ColaMD Mercury CE system font picker with live preview" width="32%">
+  <img src="docs/images/mercury-help-menu.png" alt="ColaMD Mercury定制版帮助菜单" width="32%">
+  <img src="docs/images/mercury-font-menu.png" alt="ColaMD Mercury定制版正文字体菜单" width="32%">
+  <img src="docs/images/mercury-font-picker.png" alt="ColaMD Mercury定制版系统字体选择与实时预览" width="32%">
 </p>
 
-<p align="center"><em>ColaMD Mercury CE: version label, recent files, default-editor entry, font presets, and system font preview.</em></p>
+<p align="center"><em>ColaMD Mercury定制版：版本标识、最近文件、默认编辑器入口、正文预设字体与系统字体多行预览。</em></p>
 
-## Works with your Markdown workflow
+## 与现有 Markdown 工作流配合
 
-ColaMD does not ask you to change your habits. It works well alongside Obsidian, Typora, VS Code, and other Markdown apps — all sharing the same `.md` files, with each tool doing what it does best.
+ColaMD 不要求你改变现有习惯，也适合与 Obsidian、Typora、VS Code 等 Markdown 软件配合使用。它们共享同一套 `.md` 文件，你可以用不同工具完成不同任务。
 
-## Download
+## 下载
 
-> Check [Releases](https://github.com/mercury321/ColaMD/releases) for the latest ColaMD Mercury CE builds.
+> 查看 [Releases](https://github.com/mercury321/ColaMD/releases) 获取 ColaMD Mercury定制版构建。
 
-| Platform | Format |
-|----------|--------|
-| macOS    | `.dmg` |
-| Windows  | `.exe` |
-| Linux    | `.AppImage` / `.deb` |
+| 平台 | 格式 |
+|------|------|
+| macOS | `.dmg` |
+| Windows | `.exe` |
+| Linux | `.AppImage` / `.deb` |
 
-## What ColaMD Does NOT Do
+## ColaMD 不做的事
 
-ColaMD is intentionally simple:
+ColaMD 有意保持简单：
 
-- No cross-directory file tree or workspace (same-directory Markdown file list only)
-- No cloud sync or collaboration
-- No AI features built in — it's a **viewer/editor** for AI-generated content
-- No plugin system
+- 没有跨目录文件树或工作区（仅支持打开文件所在目录的 Markdown 文件列表）
+- 没有云同步或协作编辑
+- 没有内置 AI 功能 — 它是 AI 生成内容的**查看器/编辑器**
+- 没有插件系统
 
-One thing, done well.
+一件事，做到极致。
 
-## Custom Themes
+## 自定义主题
 
-ColaMD supports custom CSS themes. Download themes from the [`themes/`](themes/) folder, or create your own and import via **Theme > Import Theme**.
+ColaMD 支持自定义 CSS 主题。从 [`themes/`](themes/) 文件夹下载主题，或自己创建后通过 **Theme > Import Theme** 导入。
 
-Imported themes are saved to `~/.colamd/themes/` and persist across sessions.
+导入的主题会保存到 `~/.colamd/themes/`，重启后仍然可用。
 
-## Development
+## 开发
 
 ```bash
 git clone https://github.com/marswaveai/colamd.git
@@ -109,7 +109,7 @@ npm install
 npm run dev
 ```
 
-### Build
+### 构建
 
 ```bash
 npm run dist:mac
@@ -117,33 +117,33 @@ npm run dist:win
 npm run dist:linux
 ```
 
-### Tech Stack
+### 技术栈
 
-- **Electron** — Cross-platform desktop
-- **Milkdown** — WYSIWYG Markdown (ProseMirror-based)
-- **TypeScript** — Strict mode
-- **electron-vite** — Fast builds
+- **Electron** — 跨平台桌面
+- **Milkdown** — 所见即所得 Markdown（基于 ProseMirror）
+- **TypeScript** — 严格模式
+- **electron-vite** — 快速构建
 
-## Roadmap
+## 路线图
 
-ColaMD will evolve alongside the agent ecosystem:
+ColaMD 将随 Agent 生态一起演进：
 
-- v1.1 — Live file reload, file associations, drag & drop, themes
-- v1.2 — New icon
-- v1.3 — Agent activity indicator, Cmd+click links, rich text copy, smart line breaks, PDF export, theme persistence
-- v1.6 — Robust live sync: atomic-save (rename) detection, watcher self-recovery, spellcheck off
-- v1.6.1 — Editable task lists (click / ⌘+Enter), ==highlight== syntax, Markdown cheatsheet
-- v1.6.2 — Remove HTML export
-- v1.7 — Same-directory file list: switch files in place, live updates when agents create/remove files; search (⌘F) + LaTeX (⌘⇧E) from community PR #14
-- v1.7.1 — Task checkbox click fix, centered SVG checkmark, titlebar file-panel toggle button
-- v1.7.2 — Playable demo page: Help → 新功能演示 (⌘⇧D), a real directory showcasing each release's features
-- v1.7.3 — Demo page becomes a cumulative changelog: resources/demo/changelog.md records every release, opening straight into it (current)
-- Future — More templates, bidirectional sync, cross-directory file browsing
+- v1.1 — 实时文件热更新、文件关联、拖拽打开、主题系统
+- v1.2 — 新图标
+- v1.3 — Agent 活动指示器、Cmd+点击链接、富文本复制、智能换行、PDF 导出、主题持久化
+- v1.6 — 更稳的实时同步：原子保存（rename）检测、watcher 自愈、关闭拼写检查
+- v1.6.1 — 可勾选的待办列表（点击 / ⌘+Enter）、`==高亮==` 语法、Markdown 语法速查
+- v1.6.2 — 移除 HTML 导出
+- v1.7 — 同目录文件列表：就地切换文件，Agent 新建/删除文件实时更新；搜索（⌘F）+ LaTeX（⌘⇧E），来自社区 PR #14
+- v1.7.1 — 待办点击修复、居中的 SVG 对勾、标题栏文件面板开关按钮
+- v1.7.2 — 可玩演示页：Help → 新功能演示（⌘⇧D），用真实目录展示每个版本的新功能
+- v1.7.3 — 演示页升级为累积式 changelog：resources/demo/changelog.md 记录每个版本，打开即见（当前版本）
+- 未来 — 更多模板、双向同步、跨目录文件浏览
 
-## License
+## 开源协议
 
-[MIT](LICENSE) — Free forever.
+[MIT](LICENSE) — 永久免费。
 
 ---
 
-Built by [marswave.ai](https://marswave.ai) for a simpler Markdown future.
+由 [marswave.ai](https://marswave.ai) 为更简单的 Markdown 未来而造。
