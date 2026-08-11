@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell, clipboard } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, clipboard, Tray } from 'electron'
 import { join, basename, dirname, extname } from 'path'
 import { readFile, writeFile, readdir, copyFile, mkdir } from 'fs/promises'
 import { watch, FSWatcher, existsSync, readdirSync, readFileSync } from 'fs'
@@ -20,6 +20,9 @@ const FALLBACK_FONT_FAMILIES = [
 
 let recentFiles: string[] = []
 let restoreLastFile = true
+let alwaysOnTop = false
+let minimizeToTray = false
+let tray: Tray | null = null
 
 function recentFilesPath(): string {
   return join(app.getPath('userData'), 'recent-files.json')
@@ -59,19 +62,22 @@ async function saveRecentFiles(): Promise<void> {
 async function loadSettings(): Promise<void> {
   try {
     const parsed: unknown = JSON.parse(await readFile(settingsPath(), 'utf-8'))
-    if (typeof parsed === 'object' && parsed !== null && 'restoreLastFile' in parsed) {
-      const value = (parsed as { restoreLastFile?: unknown }).restoreLastFile
-      if (typeof value === 'boolean') restoreLastFile = value
-    }
+    if (typeof parsed !== 'object' || parsed === null) return
+    const settings = parsed as { restoreLastFile?: unknown; alwaysOnTop?: unknown; minimizeToTray?: unknown }
+    if (typeof settings.restoreLastFile === 'boolean') restoreLastFile = settings.restoreLastFile
+    if (typeof settings.alwaysOnTop === 'boolean') alwaysOnTop = settings.alwaysOnTop
+    if (typeof settings.minimizeToTray === 'boolean') minimizeToTray = settings.minimizeToTray
   } catch {
     restoreLastFile = true
+    alwaysOnTop = false
+    minimizeToTray = false
   }
 }
 
 async function saveSettings(): Promise<void> {
   try {
     await mkdir(app.getPath('userData'), { recursive: true })
-    await writeFile(settingsPath(), JSON.stringify({ restoreLastFile }, null, 2), 'utf-8')
+    await writeFile(settingsPath(), JSON.stringify({ restoreLastFile, alwaysOnTop, minimizeToTray }, null, 2), 'utf-8')
   } catch {
     // Settings are a convenience; failure should not affect editing.
   }
@@ -217,6 +223,51 @@ function getWinFromEvent(event: Electron.IpcMainInvokeEvent): BrowserWindow | nu
   return BrowserWindow.fromWebContents(event.sender)
 }
 
+function showMainWindow(): void {
+  const win = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+function syncTray(): void {
+  if (!minimizeToTray) {
+    tray?.destroy()
+    tray = null
+    return
+  }
+
+  if (!tray) {
+    const iconPath = app.isPackaged
+      ? join(process.resourcesPath, 'icon.png')
+      : join(__dirname, '../../resources/icon.png')
+    tray = new Tray(iconPath)
+    tray.on('click', showMainWindow)
+  }
+
+  tray.setToolTip(APP_NAME)
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: '显示主窗口', click: showMainWindow },
+    { type: 'separator' },
+    { label: '退出', click: () => app.quit() }
+  ]))
+}
+
+function setAlwaysOnTop(enabled: boolean): void {
+  alwaysOnTop = enabled
+  for (const win of BrowserWindow.getAllWindows()) win.setAlwaysOnTop(enabled)
+  void saveSettings()
+  buildMenu()
+}
+
+function setMinimizeToTray(enabled: boolean): void {
+  minimizeToTray = enabled
+  syncTray()
+  void saveSettings()
+  buildMenu()
+}
+
 async function copySelectionAsFormatted(win: BrowserWindow): Promise<void> {
   const selection: unknown = await win.webContents.executeJavaScript(`
     (() => {
@@ -283,6 +334,7 @@ function createWindow(filePath?: string, initialContent?: string): BrowserWindow
   })
 
   const state = getState(win)
+  win.setAlwaysOnTop(alwaysOnTop)
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)
@@ -303,6 +355,13 @@ function createWindow(filePath?: string, initialContent?: string): BrowserWindow
     if (!params.isEditable && !params.selectionText && !params.linkURL) return
     event.preventDefault()
     showEditorContextMenu(win, params)
+  })
+
+  win.on('minimize', (event) => {
+    if (!minimizeToTray) return
+    event.preventDefault()
+    syncTray()
+    win.hide()
   })
 
   win.on('closed', () => {
@@ -1159,6 +1218,19 @@ function buildMenu(): void {
           label: '显示 / 隐藏文件列表',
           accelerator: 'CmdOrCtrl+Shift+B',
           click: () => sendToFocused('toggle-file-panel')
+        },
+        { type: 'separator' },
+        {
+          label: '窗口置顶',
+          type: 'checkbox',
+          checked: alwaysOnTop,
+          click: (item) => setAlwaysOnTop(item.checked)
+        },
+        {
+          label: '最小化到系统托盘',
+          type: 'checkbox',
+          checked: minimizeToTray,
+          click: (item) => setMinimizeToTray(item.checked)
         },
         { type: 'separator' },
         { label: '切换全屏', role: 'togglefullscreen' }
