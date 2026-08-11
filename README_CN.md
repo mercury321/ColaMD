@@ -2,6 +2,8 @@
 
 > 一款免费、优雅的 Markdown 编辑器，支持 AI Agent 改动实时同步。
 
+> **ColaMD Mercury 定制版**：这是 Mercury321 基于 [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD) 制作的 Fork 版本，包含中文菜单、系统字体选择、字体实时预览和 Windows 界面布局优化。
+
 **Language / 语言: [English](README.md) · [中文](README_CN.md)** · [官网](https://colamd.com/)
 
 Markdown 已经成为 AI 时代写作、记录、文档和协作的事实标准。但很多人的电脑上依然没有一个免费、好看、好用的 Markdown 阅读器/编辑器。
@@ -26,6 +28,14 @@ Markdown 已经成为 AI 时代写作、记录、文档和协作的事实标准�
 ---
 
 ## 功能
+
+### Mercury 定制版更新
+
+- **中文菜单** — 文件、编辑、视图、主题、帮助等菜单已完成中文化。
+- **系统字体选择** — 读取 Windows 已安装字体，支持搜索和列表选择。
+- **字体实时预览** — 通过多行标题、正文、粗体、引用和中英文混排预览字体效果。
+- **字体设置记忆** — 应用选择的正文字体会在下次启动时保留。
+- **Windows 布局优化** — 移除原生菜单下方多余空白，让编辑区从菜单下方自然开始。
 
 - **实时 Agent 同步** — Claude Code、Cursor、Copilot 或其他 AI Agent 修改文件后，内容实时出现在编辑器中。
 - **Agent 活动指示器** — 标题栏小圆点显示 Agent 正在写入或已经完成。

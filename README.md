@@ -2,6 +2,8 @@
 
 > A free, elegant Markdown editor for humans and AI agents — with real-time sync for AI-generated changes.
 
+> **ColaMD Mercury custom edition**: A Mercury321 Fork of [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD), with Chinese menus, system font selection, live font previews, and improved Windows layout.
+
 **Language / 语言: [English](README.md) · [中文](README_CN.md)** · [Website](https://colamd.com/)
 
 Markdown has become the de facto standard for writing, note-taking, documentation, and collaboration in the age of AI. Yet many computers still don't have a free, beautiful, capable Markdown reader/editor.
@@ -26,6 +28,14 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 ---
 
 ## Features
+
+### Mercury custom edition updates
+
+- **Chinese menus** — File, Edit, View, Theme, and Help menus are localized.
+- **System font selection** — Browse, search, and select fonts installed on Windows.
+- **Live font preview** — Preview headings, body text, bold text, quotes, and mixed Chinese/English content.
+- **Persistent font settings** — The selected body font is remembered between launches.
+- **Improved Windows layout** — Removes the redundant blank space below the native menu.
 
 - **Live Agent Sync** — Changes made by Claude Code, Cursor, Copilot, or other AI agents appear in the editor in real time.
 - **Agent Activity Indicator** — A subtle titlebar dot shows when an agent is writing and when it has finished.

@@ -1,6 +1,6 @@
 {
   "name": "colamd",
-  "version": "1.7.3",
+  "version": "1.7.3-mercury.1",
   "description": "The Agent Native Markdown Editor",
   "main": "dist/main/index.js",
   "author": {
@@ -8,10 +8,10 @@
     "email": "hello@marswave.ai"
   },
   "license": "MIT",
-  "homepage": "https://github.com/marswaveai/colamd",
+  "homepage": "https://github.com/mercury321/ColaMD",
   "repository": {
     "type": "git",
-    "url": "https://github.com/marswaveai/colamd.git"
+    "url": "https://github.com/mercury321/ColaMD.git"
   },
   "scripts": {
     "dev": "electron-vite dev",

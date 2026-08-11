@@ -6,6 +6,8 @@ import { IncomingMessage, ServerResponse } from 'http'
 import { createServer as createHttpServer } from 'http'
 import { execFile } from 'child_process'
 
+const APP_NAME = 'ColaMD Mercury'
+
 // Custom themes directory
 const themesDir = join(app.getPath('home'), '.colamd', 'themes')
 
@@ -15,10 +17,22 @@ const FALLBACK_FONT_FAMILIES = [
   'Noto Serif CJK SC', 'Source Han Sans SC', 'Source Han Serif SC'
 ]
 
+function decodeWindowsOutput(output: Buffer): string {
+  if (output.length >= 2 && output[0] === 0xff && output[1] === 0xfe) {
+    return output.toString('utf16le')
+  }
+
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(output)
+  } catch {
+    return new TextDecoder('gb18030').decode(output)
+  }
+}
+
 function queryFontRegistry(key: string): Promise<string> {
   return new Promise((resolve) => {
-    execFile('reg.exe', ['query', key], { encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 }, (error, stdout) => {
-      resolve(error ? '' : stdout)
+    execFile('reg.exe', ['query', key], { encoding: 'buffer', maxBuffer: 2 * 1024 * 1024 }, (error, stdout) => {
+      resolve(error ? '' : decodeWindowsOutput(stdout))
     })
   })
 }
@@ -165,7 +179,7 @@ function createWindow(filePath?: string, initialContent?: string): BrowserWindow
 function updateTitle(win: BrowserWindow): void {
   const state = getState(win)
   const fileName = state.filePath ? basename(state.filePath) : 'Untitled'
-  win.setTitle(`${fileName} — ColaMD`)
+  win.setTitle(`${fileName} — ${APP_NAME}`)
 }
 
 function suggestFileName(win: BrowserWindow, content?: string): string | undefined {
@@ -886,15 +900,15 @@ function buildMenu(): void {
 
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(isMac ? [{
-      label: 'ColaMD',
+      label: APP_NAME,
       submenu: [
-        { label: '关于 ColaMD', role: 'about' as const },
+        { label: `关于 ${APP_NAME}`, role: 'about' as const },
         { type: 'separator' as const },
-        { label: '隐藏 ColaMD', role: 'hide' as const },
+        { label: `隐藏 ${APP_NAME}`, role: 'hide' as const },
         { label: '隐藏其他窗口', role: 'hideOthers' as const },
         { label: '显示全部窗口', role: 'unhide' as const },
         { type: 'separator' as const },
-        { label: '退出 ColaMD', role: 'quit' as const }
+        { label: `退出 ${APP_NAME}`, role: 'quit' as const }
       ]
     }] : []),
     {
@@ -1004,8 +1018,8 @@ function buildMenu(): void {
           click: () => openCheatsheet()
         },
         {
-          label: '关于 ColaMD',
-          click: () => shell.openExternal('https://github.com/marswaveai/colamd')
+          label: `关于 ${APP_NAME}`,
+          click: () => shell.openExternal('https://github.com/mercury321/ColaMD')
         }
       ]
     }
