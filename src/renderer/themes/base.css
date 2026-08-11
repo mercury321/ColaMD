@@ -126,21 +126,9 @@ body.platform-win32 #editor {
   display: flex;
 }
 
-#agent-dot.active {
+#agent-dot.unsaved {
   background: #e8913a;
   opacity: 1;
-  animation: agent-breathe 2s ease-in-out infinite;
-}
-
-#agent-dot.cooldown {
-  background: #3dba5c;
-  opacity: 1;
-  animation: none;
-}
-
-@keyframes agent-breathe {
-  0%, 100% { opacity: 0.45; transform: scale(0.95); }
-  50% { opacity: 1; transform: scale(1.05); }
 }
 
 #editor {

@@ -139,6 +139,11 @@ let manualHidden = localStorage.getItem('file-panel-hidden') === '1'
 function setDirtyState(value: boolean): void {
   dirty = value
   window.electronAPI.setDocumentDirty(value)
+  const statusDot = document.getElementById('agent-dot')
+  if (statusDot) {
+    statusDot.classList.toggle('unsaved', value)
+    statusDot.setAttribute('title', value ? '有未保存的修改' : '已保存')
+  }
 }
 
 function scheduleAutoSave(): void {
@@ -339,11 +344,6 @@ async function init(): Promise<void> {
   api.onMenuImportTheme(async () => {
     const result = await api.loadCustomTheme()
     if (result) applyTheme(`custom:${result.name}`, result.css)
-  })
-
-  const agentDot = document.getElementById('agent-dot')
-  api.onAgentActivity((state) => {
-    if (agentDot) agentDot.className = state === 'idle' ? '' : state
   })
 
   document.addEventListener('dragover', (e) => e.preventDefault())
