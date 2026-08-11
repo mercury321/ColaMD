@@ -6,7 +6,7 @@ import { IncomingMessage, ServerResponse } from 'http'
 import { createServer as createHttpServer } from 'http'
 import { execFile } from 'child_process'
 
-const APP_NAME = 'ColaMD Mercury'
+const APP_NAME = 'ColaMD Mercury定制版'
 
 // Custom themes directory
 const themesDir = join(app.getPath('home'), '.colamd', 'themes')

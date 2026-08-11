@@ -1,8 +1,8 @@
-# ColaMD Mercury
+# ColaMD Mercury定制版
 
 > 一款免费、优雅的 Markdown 编辑器，支持 AI Agent 改动实时同步。
 
-> **ColaMD Mercury 定制版**：这是 Mercury321 基于 [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD) 制作的 Fork 版本，包含中文菜单、系统字体选择、字体实时预览和 Windows 界面布局优化。
+> **ColaMD Mercury定制版**：这是 Mercury321 基于 [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD) 制作的 Fork 版本，包含中文菜单、系统字体选择、字体实时预览和 Windows 界面布局优化。
 
 **Language / 语言: [English](README.md) · [中文](README_CN.md)** · [官网](https://colamd.com/)
 
@@ -57,11 +57,11 @@ Markdown 已经成为 AI 时代写作、记录、文档和协作的事实标准�
 ## 截图
 
 <p align="center">
-  <img src="docs/images/markdown-cheatsheet.png" alt="ColaMD Markdown 语法速查与交互式待办列表" width="49%">
-  <img src="docs/images/markdown-rendering.png" alt="ColaMD Markdown 渲染、代码块、引用、表格与智能换行" width="49%">
+  <img src="docs/images/mercury-editor.png" alt="ColaMD Mercury定制版中文菜单与编辑器" width="49%">
+  <img src="docs/images/mercury-fonts.png" alt="ColaMD Mercury定制版系统字体选择与实时预览" width="49%">
 </p>
 
-<p align="center"><em>内置语法速查、交互式待办列表、代码块、引用、表格与智能换行。</em></p>
+<p align="center"><em>ColaMD Mercury定制版：中文菜单、系统字体选择与多行实时预览。</em></p>
 
 ## 与现有 Markdown 工作流配合
 
@@ -69,7 +69,7 @@ ColaMD 不要求你改变现有习惯，也适合与 Obsidian、Typora、VS Code
 
 ## 下载
 
-> 查看 [Releases](https://github.com/mercury321/ColaMD/releases) 获取 ColaMD Mercury 定制版构建。
+> 查看 [Releases](https://github.com/mercury321/ColaMD/releases) 获取 ColaMD Mercury定制版构建。
 
 | 平台 | 格式 |
 |------|------|

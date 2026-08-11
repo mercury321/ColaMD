@@ -1,8 +1,8 @@
-# ColaMD Mercury
+# ColaMD Mercury CE
 
 > A free, elegant Markdown editor for humans and AI agents — with real-time sync for AI-generated changes.
 
-> **ColaMD Mercury custom edition**: A Mercury321 Fork of [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD), with Chinese menus, system font selection, live font previews, and improved Windows layout.
+> **ColaMD Mercury CE**: A Mercury321 Fork of [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD), with Chinese menus, system font selection, live font previews, and improved Windows layout.
 
 **Language / 语言: [English](README.md) · [中文](README_CN.md)** · [Website](https://colamd.com/)
 
@@ -37,7 +37,7 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 - **Persistent font settings** — The selected body font is remembered between launches.
 - **Improved Windows layout** — Removes the redundant blank space below the native menu.
 - **Recent files** — Keeps up to 12 recently opened Markdown files under File > Recent Files.
-- **Startup restore** — Choose whether to reopen the last document when ColaMD Mercury starts.
+- **Startup restore** — Choose whether to reopen the last document when ColaMD Mercury CE starts.
 - **Default editor entry point** — Windows users can open the system default-app settings from Help > Set as Default Markdown Editor.
 
 - **Live Agent Sync** — Changes made by Claude Code, Cursor, Copilot, or other AI agents appear in the editor in real time.
@@ -57,11 +57,11 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 ## Screenshots
 
 <p align="center">
-  <img src="docs/images/markdown-cheatsheet.png" alt="ColaMD Markdown cheatsheet and interactive task list" width="49%">
-  <img src="docs/images/markdown-rendering.png" alt="ColaMD Markdown rendering with code blocks, quotes, tables, and smart line breaks" width="49%">
+  <img src="docs/images/mercury-editor.png" alt="ColaMD Mercury CE with Chinese menus and editor" width="49%">
+  <img src="docs/images/mercury-fonts.png" alt="ColaMD Mercury CE system font picker with live preview" width="49%">
 </p>
 
-<p align="center"><em>Built-in syntax reference, interactive task lists, code blocks, quotes, tables, and smart line breaks.</em></p>
+<p align="center"><em>ColaMD Mercury CE: Chinese menus, system font selection, and multi-line live preview.</em></p>
 
 ## Works with your Markdown workflow
 
@@ -69,7 +69,7 @@ ColaMD does not ask you to change your habits. It works well alongside Obsidian,
 
 ## Download
 
-> Check [Releases](https://github.com/mercury321/ColaMD/releases) for the latest ColaMD Mercury custom builds.
+> Check [Releases](https://github.com/mercury321/ColaMD/releases) for the latest ColaMD Mercury CE builds.
 
 | Platform | Format |
 |----------|--------|

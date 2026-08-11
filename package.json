@@ -1,6 +1,6 @@
 {
   "name": "colamd",
-  "version": "1.7.3-mercury.2",
+  "version": "1.7.3-mercury.4",
   "description": "The Agent Native Markdown Editor",
   "main": "dist/main/index.js",
   "author": {
@@ -33,6 +33,7 @@
     "electron": "^34.0.0",
     "electron-builder": "^26.0.0",
     "electron-vite": "^3.0.0",
+    "rcedit": "^5.0.2",
     "typescript": "^5.7.0",
     "vite": "^6.0.0"
   }

@@ -104,7 +104,7 @@ function enhanceClipboard(e: ClipboardEvent): void {
   e.clipboardData?.setData('text/html', doc.body.innerHTML)
 }
 
-const defaultContent = `# Welcome to ColaMD\n\nStart typing here...\n`
+const defaultContent = `# 欢迎使用 ColaMD Mercury定制版\n\n开始在这里写作……\n`
 
 export async function createEditor(
   rootId: string,
