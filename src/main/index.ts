@@ -299,6 +299,12 @@ function createWindow(filePath?: string, initialContent?: string): BrowserWindow
     }
   })
 
+  win.webContents.on('context-menu', (event, params) => {
+    if (!params.isEditable && !params.selectionText && !params.linkURL) return
+    event.preventDefault()
+    showEditorContextMenu(win, params)
+  })
+
   win.on('closed', () => {
     stopWatching(state)
     windowStates.delete(win.id)
@@ -1028,12 +1034,6 @@ function buildMenu(): void {
   themeSubmenu.push({ type: 'separator' }, {
     label: '导入主题…',
     click: () => sendToFocused('menu-import-theme')
-  })
-
-  win.webContents.on('context-menu', (event, params) => {
-    if (!params.isEditable && !params.selectionText && !params.linkURL) return
-    event.preventDefault()
-    showEditorContextMenu(win, params)
   })
 
   const fontSubmenu: Electron.MenuItemConstructorOptions[] = [
