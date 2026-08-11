@@ -3,6 +3,81 @@ import { SearchPanel } from './editor/search-panel'
 import { applyTheme, loadSavedTheme } from './themes/theme-manager'
 import './themes/base.css'
 
+const FONT_STORAGE_KEY = 'colamd-editor-font'
+const CUSTOM_FONT_NAME_KEY = 'colamd-custom-font-name'
+
+function applyEditorFont(fontFamily: string): void {
+  const value = fontFamily.trim()
+  if (!value) {
+    document.documentElement.style.removeProperty('--editor-font-family')
+    document.body.classList.remove('has-font-override')
+    localStorage.removeItem(FONT_STORAGE_KEY)
+    return
+  }
+
+  document.documentElement.style.setProperty('--editor-font-family', value)
+  document.body.classList.add('has-font-override')
+  localStorage.setItem(FONT_STORAGE_KEY, value)
+}
+
+function loadSavedFont(): void {
+  applyEditorFont(localStorage.getItem(FONT_STORAGE_KEY) || '')
+}
+
+function fontStackFromName(fontName: string): string {
+  const escaped = fontName.trim().replace(/["\\]/g, '\\$&')
+  return `"${escaped}", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif`
+}
+
+function showFontSettings(): void {
+  if (document.querySelector('.font-modal-overlay')) return
+
+  const overlay = document.createElement('div')
+  overlay.className = 'font-modal-overlay'
+  overlay.innerHTML = `
+    <section class="font-modal" role="dialog" aria-modal="true" aria-labelledby="font-modal-title">
+      <h3 id="font-modal-title">自定义正文字体</h3>
+      <p>输入电脑中已安装的字体名称，例如“思源宋体”或“霞鹜文楷”。</p>
+      <input class="font-modal-input" type="text" autocomplete="off" placeholder="字体名称">
+      <div class="font-modal-preview">中文排版预览 · ColaMD 123</div>
+      <div class="font-modal-footer">
+        <button class="font-modal-btn cancel" type="button">取消</button>
+        <button class="font-modal-btn save" type="button">应用</button>
+      </div>
+    </section>`
+
+  const input = overlay.querySelector('.font-modal-input') as HTMLInputElement
+  const preview = overlay.querySelector('.font-modal-preview') as HTMLElement
+  const close = (): void => overlay.remove()
+  const apply = (): void => {
+    const fontName = input.value.trim()
+    if (!fontName) return
+    localStorage.setItem(CUSTOM_FONT_NAME_KEY, fontName)
+    applyEditorFont(fontStackFromName(fontName))
+    close()
+  }
+
+  input.value = localStorage.getItem(CUSTOM_FONT_NAME_KEY) || ''
+  const updatePreview = (): void => {
+    preview.style.fontFamily = input.value.trim() ? fontStackFromName(input.value) : ''
+  }
+  updatePreview()
+  input.addEventListener('input', updatePreview)
+  overlay.querySelector('.cancel')?.addEventListener('click', close)
+  overlay.querySelector('.save')?.addEventListener('click', apply)
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) close()
+  })
+  overlay.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') close()
+    if (event.key === 'Enter') apply()
+  })
+
+  document.body.appendChild(overlay)
+  input.focus()
+  input.select()
+}
+
 function isSlidesContent(content: string): boolean {
   return /^---\s*\n[\s\S]*?(kicker|chip):/m.test(content)
 }
@@ -98,8 +173,10 @@ function getContent(): string {
 
 async function init(): Promise<void> {
   const api = window.electronAPI
+  document.body.classList.add(`platform-${api.platform}`)
   const savedTheme = loadSavedTheme()
   applyTheme(savedTheme)
+  loadSavedFont()
 
   if (savedTheme.startsWith('custom:')) {
     const fileName = savedTheme.slice(7)
@@ -167,6 +244,8 @@ async function init(): Promise<void> {
     dirty = false
   })
   api.onSetTheme((theme) => applyTheme(theme))
+  api.onSetFont((fontFamily) => applyEditorFont(fontFamily))
+  api.onShowFontSettings(() => showFontSettings())
   api.onSetCustomCSS((css) => {
     const theme = loadSavedTheme()
     applyTheme(theme, css)

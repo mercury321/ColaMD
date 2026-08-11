@@ -6,6 +6,7 @@ export interface SiblingFile {
 }
 
 export interface ElectronAPI {
+  platform: NodeJS.Platform
   openFile: () => Promise<{ path: string; content: string } | null>
   openFilePath: (path: string) => Promise<{ path: string; content: string } | null>
   listSiblings: () => Promise<SiblingFile[] | null>
@@ -30,6 +31,8 @@ export interface ElectronAPI {
   onMenuOpenAsSlides: (callback: () => void) => void
   onNewSlidesContent: (callback: (content: string) => void) => void
   onSetTheme: (callback: (theme: string) => void) => void
+  onSetFont: (callback: (fontFamily: string) => void) => void
+  onShowFontSettings: (callback: () => void) => void
   onSetCustomCSS: (callback: (css: string) => void) => void
   onMenuImportTheme: (callback: () => void) => void
   exportSlides: (content: string) => Promise<boolean>
@@ -42,6 +45,7 @@ export interface ElectronAPI {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  platform: process.platform,
   openFile: () => ipcRenderer.invoke('open-file'),
   openFilePath: (path: string) => ipcRenderer.invoke('open-file-path', path),
   listSiblings: () => ipcRenderer.invoke('list-siblings'),
@@ -88,6 +92,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onSetTheme: (callback: (theme: string) => void) => {
     ipcRenderer.on('set-theme', (_event, theme) => callback(theme))
+  },
+  onSetFont: (callback: (fontFamily: string) => void) => {
+    ipcRenderer.on('set-font', (_event, fontFamily) => callback(fontFamily))
+  },
+  onShowFontSettings: (callback: () => void) => {
+    ipcRenderer.on('show-font-settings', () => callback())
   },
   onSetCustomCSS: (callback: (css: string) => void) => {
     ipcRenderer.on('set-custom-css', (_event, css) => callback(css))
