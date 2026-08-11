@@ -4,7 +4,7 @@ import { applyTheme, loadSavedTheme } from './themes/theme-manager'
 import './themes/base.css'
 
 const FONT_STORAGE_KEY = 'colamd-editor-font'
-const CUSTOM_FONT_NAME_KEY = 'colamd-custom-font-name'
+const FONT_NAME_STORAGE_KEY = 'colamd-editor-font-name'
 
 function applyEditorFont(fontFamily: string): void {
   const value = fontFamily.trim()
@@ -12,12 +12,15 @@ function applyEditorFont(fontFamily: string): void {
     document.documentElement.style.removeProperty('--editor-font-family')
     document.body.classList.remove('has-font-override')
     localStorage.removeItem(FONT_STORAGE_KEY)
+    localStorage.removeItem(FONT_NAME_STORAGE_KEY)
     return
   }
 
   document.documentElement.style.setProperty('--editor-font-family', value)
   document.body.classList.add('has-font-override')
   localStorage.setItem(FONT_STORAGE_KEY, value)
+  const firstFamily = value.match(/^"([^"]+)"/)?.[1] || value.split(',')[0].trim()
+  if (firstFamily) localStorage.setItem(FONT_NAME_STORAGE_KEY, firstFamily)
 }
 
 function loadSavedFont(): void {
@@ -29,40 +32,75 @@ function fontStackFromName(fontName: string): string {
   return `"${escaped}", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif`
 }
 
-function showFontSettings(): void {
+async function showFontSettings(): Promise<void> {
   if (document.querySelector('.font-modal-overlay')) return
+
+  const fonts = await window.electronAPI.listSystemFonts()
+  if (fonts.length === 0) return
 
   const overlay = document.createElement('div')
   overlay.className = 'font-modal-overlay'
   overlay.innerHTML = `
     <section class="font-modal" role="dialog" aria-modal="true" aria-labelledby="font-modal-title">
-      <h3 id="font-modal-title">自定义正文字体</h3>
-      <p>输入电脑中已安装的字体名称，例如“思源宋体”或“霞鹜文楷”。</p>
-      <input class="font-modal-input" type="text" autocomplete="off" placeholder="字体名称">
-      <div class="font-modal-preview">中文排版预览 · ColaMD 123</div>
+      <h3 id="font-modal-title">选择正文字体</h3>
+      <p>从这台电脑已经安装的字体中选择，下方会即时显示正文排版效果。</p>
+      <input class="font-modal-search" type="search" autocomplete="off" placeholder="搜索系统字体">
+      <div class="font-modal-content">
+        <select class="font-modal-select" size="11" aria-label="系统字体列表"></select>
+        <article class="font-modal-preview">
+          <h4>让文字拥有合适的气质</h4>
+          <p>字体决定阅读的节奏，也影响长文在屏幕上的清晰度与舒适度。</p>
+          <p><strong>重点预览：</strong>中文、English、数字 123456，以及标点「，。！？」。</p>
+          <blockquote>好的排版，让文字安静地抵达读者。</blockquote>
+        </article>
+      </div>
       <div class="font-modal-footer">
         <button class="font-modal-btn cancel" type="button">取消</button>
         <button class="font-modal-btn save" type="button">应用</button>
       </div>
     </section>`
 
-  const input = overlay.querySelector('.font-modal-input') as HTMLInputElement
+  const search = overlay.querySelector('.font-modal-search') as HTMLInputElement
+  const select = overlay.querySelector('.font-modal-select') as HTMLSelectElement
   const preview = overlay.querySelector('.font-modal-preview') as HTMLElement
+  let selectedFont = localStorage.getItem(FONT_NAME_STORAGE_KEY) || fonts[0]
   const close = (): void => overlay.remove()
   const apply = (): void => {
-    const fontName = input.value.trim()
-    if (!fontName) return
-    localStorage.setItem(CUSTOM_FONT_NAME_KEY, fontName)
-    applyEditorFont(fontStackFromName(fontName))
+    if (!selectedFont) return
+    applyEditorFont(fontStackFromName(selectedFont))
     close()
   }
 
-  input.value = localStorage.getItem(CUSTOM_FONT_NAME_KEY) || ''
   const updatePreview = (): void => {
-    preview.style.fontFamily = input.value.trim() ? fontStackFromName(input.value) : ''
+    preview.style.fontFamily = fontStackFromName(selectedFont)
   }
+  const renderOptions = (query = ''): void => {
+    const keyword = query.trim().toLocaleLowerCase()
+    const visibleFonts = keyword
+      ? fonts.filter((font) => font.toLocaleLowerCase().includes(keyword))
+      : fonts
+    select.replaceChildren(...visibleFonts.map((font) => {
+      const option = document.createElement('option')
+      option.value = font
+      option.textContent = font
+      option.style.fontFamily = fontStackFromName(font)
+      option.selected = font === selectedFont
+      return option
+    }))
+    if (visibleFonts.length > 0 && !visibleFonts.includes(selectedFont)) {
+      selectedFont = visibleFonts[0]
+      select.value = selectedFont
+      updatePreview()
+    }
+  }
+
+  renderOptions()
   updatePreview()
-  input.addEventListener('input', updatePreview)
+  search.addEventListener('input', () => renderOptions(search.value))
+  select.addEventListener('change', () => {
+    selectedFont = select.value
+    updatePreview()
+  })
   overlay.querySelector('.cancel')?.addEventListener('click', close)
   overlay.querySelector('.save')?.addEventListener('click', apply)
   overlay.addEventListener('click', (event) => {
@@ -70,12 +108,10 @@ function showFontSettings(): void {
   })
   overlay.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') close()
-    if (event.key === 'Enter') apply()
   })
 
   document.body.appendChild(overlay)
-  input.focus()
-  input.select()
+  search.focus()
 }
 
 function isSlidesContent(content: string): boolean {
@@ -245,7 +281,7 @@ async function init(): Promise<void> {
   })
   api.onSetTheme((theme) => applyTheme(theme))
   api.onSetFont((fontFamily) => applyEditorFont(fontFamily))
-  api.onShowFontSettings(() => showFontSettings())
+  api.onShowFontSettings(() => { void showFontSettings() })
   api.onSetCustomCSS((css) => {
     const theme = loadSavedTheme()
     applyTheme(theme, css)

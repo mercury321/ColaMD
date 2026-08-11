@@ -4,11 +4,57 @@ import { readFile, writeFile, readdir, copyFile, mkdir } from 'fs/promises'
 import { watch, FSWatcher, existsSync, readdirSync, readFileSync } from 'fs'
 import { IncomingMessage, ServerResponse } from 'http'
 import { createServer as createHttpServer } from 'http'
+import { execFile } from 'child_process'
 
 // Custom themes directory
 const themesDir = join(app.getPath('home'), '.colamd', 'themes')
 
 const MARKDOWN_EXTENSIONS = ['.md', '.markdown', '.mdown', '.mkd']
+const FALLBACK_FONT_FAMILIES = [
+  'Arial', 'Georgia', 'Microsoft YaHei', 'Noto Sans CJK SC',
+  'Noto Serif CJK SC', 'Source Han Sans SC', 'Source Han Serif SC'
+]
+
+function queryFontRegistry(key: string): Promise<string> {
+  return new Promise((resolve) => {
+    execFile('reg.exe', ['query', key], { encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 }, (error, stdout) => {
+      resolve(error ? '' : stdout)
+    })
+  })
+}
+
+function normalizeFontFamily(name: string): string[] {
+  const clean = name
+    .replace(/^@/, '')
+    .replace(/\s+\((?:TrueType|OpenType)\)$/i, '')
+
+  return clean.split(/\s+&\s+/).map((family) => family
+    .replace(/\s+(?:Bold Italic|Bold Oblique|SemiBold Italic|SemiBold|DemiBold|Light Italic|Light|Medium Italic|Medium|Black Italic|Black|ExtraLight|Thin|Italic|Oblique|Regular)$/i, '')
+    .trim()
+  ).filter(Boolean)
+}
+
+async function listSystemFonts(): Promise<string[]> {
+  if (process.platform !== 'win32') return FALLBACK_FONT_FAMILIES
+
+  const keys = [
+    'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts',
+    'HKCU\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts'
+  ]
+  const outputs = await Promise.all(keys.map(queryFontRegistry))
+  const families = new Set<string>()
+
+  for (const output of outputs) {
+    for (const line of output.split(/\r?\n/)) {
+      const match = line.match(/^\s{4}(.+?)\s+REG_(?:SZ|EXPAND_SZ)\s+/)
+      if (!match) continue
+      for (const family of normalizeFontFamily(match[1])) families.add(family)
+    }
+  }
+
+  if (families.size === 0) return FALLBACK_FONT_FAMILIES
+  return [...families].sort((a, b) => a.localeCompare(b, 'zh-CN', { sensitivity: 'base' }))
+}
 
 interface SiblingFile {
   name: string
@@ -365,6 +411,8 @@ ipcMain.on('open-external', (_event, url: string) => {
     shell.openExternal(url)
   }
 })
+
+ipcMain.handle('list-system-fonts', () => listSystemFonts())
 
 ipcMain.handle('open-file', async (event) => {
   const win = getWinFromEvent(event)
@@ -829,7 +877,11 @@ function buildMenu(): void {
     { label: '思源宋体', click: () => sendToFocused('set-font', '"Source Han Serif SC", "Noto Serif CJK SC", serif') },
     { label: '霞鹜文楷', click: () => sendToFocused('set-font', '"LXGW WenKai", "KaiTi", serif') },
     { type: 'separator' },
-    { label: '自定义字体…', click: () => sendToFocused('show-font-settings') }
+    {
+      label: '浏览系统字体…',
+      accelerator: 'CmdOrCtrl+Alt+F',
+      click: () => sendToFocused('show-font-settings')
+    }
   ]
 
   const template: Electron.MenuItemConstructorOptions[] = [

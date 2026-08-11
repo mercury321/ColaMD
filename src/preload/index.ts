@@ -7,6 +7,7 @@ export interface SiblingFile {
 
 export interface ElectronAPI {
   platform: NodeJS.Platform
+  listSystemFonts: () => Promise<string[]>
   openFile: () => Promise<{ path: string; content: string } | null>
   openFilePath: (path: string) => Promise<{ path: string; content: string } | null>
   listSiblings: () => Promise<SiblingFile[] | null>
@@ -46,6 +47,7 @@ export interface ElectronAPI {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
+  listSystemFonts: () => ipcRenderer.invoke('list-system-fonts'),
   openFile: () => ipcRenderer.invoke('open-file'),
   openFilePath: (path: string) => ipcRenderer.invoke('open-file-path', path),
   listSiblings: () => ipcRenderer.invoke('list-siblings'),
