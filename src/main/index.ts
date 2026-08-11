@@ -23,6 +23,8 @@ let restoreLastFile = true
 let alwaysOnTop = false
 let minimizeToTray = false
 let tray: Tray | null = null
+let autoSaveEnabled = true
+let customAutoSaveDir: string | null = null
 
 function recentFilesPath(): string {
   return join(app.getPath('userData'), 'recent-files.json')
@@ -63,21 +65,33 @@ async function loadSettings(): Promise<void> {
   try {
     const parsed: unknown = JSON.parse(await readFile(settingsPath(), 'utf-8'))
     if (typeof parsed !== 'object' || parsed === null) return
-    const settings = parsed as { restoreLastFile?: unknown; alwaysOnTop?: unknown; minimizeToTray?: unknown }
+    const settings = parsed as {
+      restoreLastFile?: unknown
+      alwaysOnTop?: unknown
+      minimizeToTray?: unknown
+      autoSaveEnabled?: unknown
+      customAutoSaveDir?: unknown
+    }
     if (typeof settings.restoreLastFile === 'boolean') restoreLastFile = settings.restoreLastFile
     if (typeof settings.alwaysOnTop === 'boolean') alwaysOnTop = settings.alwaysOnTop
     if (typeof settings.minimizeToTray === 'boolean') minimizeToTray = settings.minimizeToTray
+    if (typeof settings.autoSaveEnabled === 'boolean') autoSaveEnabled = settings.autoSaveEnabled
+    if (typeof settings.customAutoSaveDir === 'string') customAutoSaveDir = settings.customAutoSaveDir
   } catch {
     restoreLastFile = true
     alwaysOnTop = false
     minimizeToTray = false
+    autoSaveEnabled = true
+    customAutoSaveDir = null
   }
 }
 
 async function saveSettings(): Promise<void> {
   try {
     await mkdir(app.getPath('userData'), { recursive: true })
-    await writeFile(settingsPath(), JSON.stringify({ restoreLastFile, alwaysOnTop, minimizeToTray }, null, 2), 'utf-8')
+    await writeFile(settingsPath(), JSON.stringify({
+      restoreLastFile, alwaysOnTop, minimizeToTray, autoSaveEnabled, customAutoSaveDir
+    }, null, 2), 'utf-8')
   } catch {
     // Settings are a convenience; failure should not affect editing.
   }
@@ -198,6 +212,9 @@ async function scanCustomThemes(): Promise<string[]> {
 // Per-window state
 interface WindowState {
   filePath: string | null
+  autoSavePath: string | null
+  dirty: boolean
+  allowClose: boolean
   watcher: FSWatcher | null
   isInternalSave: boolean
   debounceTimer: ReturnType<typeof setTimeout> | null
@@ -213,7 +230,19 @@ let pendingFilePaths: string[] = []
 function getState(win: BrowserWindow): WindowState {
   let state = windowStates.get(win.id)
   if (!state) {
-    state = { filePath: null, watcher: null, isInternalSave: false, debounceTimer: null, siblingsTimer: null, agentState: 'idle', lastExternalChange: 0, agentCooldownTimer: null }
+    state = {
+      filePath: null,
+      autoSavePath: null,
+      dirty: false,
+      allowClose: false,
+      watcher: null,
+      isInternalSave: false,
+      debounceTimer: null,
+      siblingsTimer: null,
+      agentState: 'idle',
+      lastExternalChange: 0,
+      agentCooldownTimer: null
+    }
     windowStates.set(win.id, state)
   }
   return state
@@ -266,6 +295,60 @@ function setMinimizeToTray(enabled: boolean): void {
   syncTray()
   void saveSettings()
   buildMenu()
+}
+
+function defaultAutoSaveDir(): string {
+  return join(app.isPackaged ? dirname(process.execPath) : app.getAppPath(), 'Out')
+}
+
+function activeAutoSaveDir(): string {
+  return customAutoSaveDir || defaultAutoSaveDir()
+}
+
+function autoSaveFileName(win: BrowserWindow, content: string): string {
+  const state = getState(win)
+  if (state.filePath) return basename(state.filePath)
+  const name = suggestFileName(win, content) || '未命名文档'
+  return `${name}.md`
+}
+
+async function autoSaveDocument(win: BrowserWindow, content: string): Promise<string | null> {
+  if (!autoSaveEnabled || !content.trim()) return null
+  const state = getState(win)
+  const fileName = autoSaveFileName(win, content)
+  const candidates = [activeAutoSaveDir(), join(app.getPath('userData'), 'Out')]
+
+  for (const directory of candidates) {
+    try {
+      await mkdir(directory, { recursive: true })
+      const destination = state.autoSavePath && dirname(state.autoSavePath) === directory
+        ? state.autoSavePath
+        : join(directory, fileName)
+      await writeFile(destination, content, 'utf-8')
+      state.autoSavePath = destination
+      return destination
+    } catch {
+      // If the install directory is protected, keep the draft safe in user data.
+    }
+  }
+  return null
+}
+
+async function chooseAutoSaveDirectory(): Promise<void> {
+  const result = await dialog.showOpenDialog({
+    title: '选择自动保存位置',
+    defaultPath: activeAutoSaveDir(),
+    properties: ['openDirectory', 'createDirectory']
+  })
+  if (result.canceled || !result.filePaths[0]) return
+  customAutoSaveDir = result.filePaths[0]
+  await saveSettings()
+}
+
+function openAutoSaveDirectory(): void {
+  void mkdir(activeAutoSaveDir(), { recursive: true })
+    .then(() => shell.openPath(activeAutoSaveDir()))
+    .catch(() => shell.openPath(join(app.getPath('userData'), 'Out')))
 }
 
 async function copySelectionAsFormatted(win: BrowserWindow): Promise<void> {
@@ -362,6 +445,26 @@ function createWindow(filePath?: string, initialContent?: string): BrowserWindow
     event.preventDefault()
     syncTray()
     win.hide()
+  })
+
+  win.on('close', (event) => {
+    if (!state.dirty || state.allowClose) return
+    event.preventDefault()
+    const choice = dialog.showMessageBoxSync(win, {
+      type: 'question',
+      title: '保存更改',
+      message: '文档已修改，是否保存后再关闭？',
+      detail: state.autoSavePath ? `自动保存副本已更新：${state.autoSavePath}` : undefined,
+      buttons: ['保存', '不保存', '取消'],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true
+    })
+    if (choice === 0) win.webContents.send('menu-save-and-close')
+    if (choice === 1) {
+      state.allowClose = true
+      win.close()
+    }
   })
 
   win.on('closed', () => {
@@ -626,6 +729,25 @@ ipcMain.on('open-external', (_event, url: string) => {
 })
 
 ipcMain.handle('list-system-fonts', () => listSystemFonts())
+
+ipcMain.handle('auto-save-document', async (event, content: string) => {
+  const win = getWinFromEvent(event)
+  if (!win || typeof content !== 'string') return null
+  return autoSaveDocument(win, content)
+})
+
+ipcMain.on('set-document-dirty', (event, dirty: unknown) => {
+  const win = getWinFromEvent(event)
+  if (win && typeof dirty === 'boolean') getState(win).dirty = dirty
+})
+
+ipcMain.on('close-window-after-save', (event) => {
+  const win = getWinFromEvent(event)
+  if (!win) return
+  const state = getState(win)
+  state.allowClose = true
+  win.close()
+})
 
 ipcMain.handle('open-file', async (event) => {
   const win = getWinFromEvent(event)
@@ -1154,6 +1276,24 @@ function buildMenu(): void {
             restoreLastFile = item.checked
             void saveSettings()
           }
+        },
+        {
+          label: '自动保存',
+          type: 'checkbox',
+          checked: autoSaveEnabled,
+          click: (item) => {
+            autoSaveEnabled = item.checked
+            void saveSettings()
+            buildMenu()
+          }
+        },
+        {
+          label: '设置自动保存位置…',
+          click: () => { void chooseAutoSaveDirectory() }
+        },
+        {
+          label: '打开自动保存目录',
+          click: openAutoSaveDirectory
         },
         { type: 'separator' },
         {

@@ -129,11 +129,25 @@ const fileToggleBtnEl = () => document.getElementById('file-toggle-btn') as HTML
 // --- Same-directory file panel ---
 let currentFilePath: string | null = null
 let dirty = false
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 // Milkdown's markdownUpdated listener fires 200ms-debounced AFTER a doc change,
 // so a programmatic load would spuriously mark the doc dirty unless we keep a
 // suppression window long enough to cover that debounce.
 let applyingUntil = 0
 let manualHidden = localStorage.getItem('file-panel-hidden') === '1'
+
+function setDirtyState(value: boolean): void {
+  dirty = value
+  window.electronAPI.setDocumentDirty(value)
+}
+
+function scheduleAutoSave(): void {
+  if (autoSaveTimer) clearTimeout(autoSaveTimer)
+  autoSaveTimer = setTimeout(() => {
+    autoSaveTimer = null
+    void window.electronAPI.autoSaveDocument(getContent())
+  }, 1000)
+}
 
 function markApplying(): void {
   applyingUntil = Date.now() + 350
@@ -225,7 +239,16 @@ async function init(): Promise<void> {
   api.onMathModal(() => showMathModal())
 
   await createEditor('editor', () => {
-    if (Date.now() >= applyingUntil) dirty = true
+    if (Date.now() >= applyingUntil) {
+      setDirtyState(true)
+      scheduleAutoSave()
+    }
+  })
+
+  sourceEl().addEventListener('input', () => {
+    if (!sourceModeActive || Date.now() < applyingUntil) return
+    setDirtyState(true)
+    scheduleAutoSave()
   })
 
   // File panel: switch to a sibling file (confirm if there are unsaved edits)
@@ -253,18 +276,28 @@ async function init(): Promise<void> {
 
   api.onMenuSave(async () => {
     const ok = await api.saveFile(getContent())
-    if (ok) dirty = false
+    if (ok) setDirtyState(false)
   })
   api.onMenuSaveAs(async () => {
     const ok = await api.saveFileAs(getContent())
-    if (ok) dirty = false
+    if (ok) setDirtyState(false)
+  })
+  api.onMenuSaveAndClose(async () => {
+    const ok = await api.saveFile(getContent())
+    if (!ok) return
+    setDirtyState(false)
+    api.closeWindowAfterSave()
   })
   api.onMenuExportPDF(() => api.exportPDF())
 
-  api.onNewFile(() => { exitSourceMode(); applyContent('') })
+  api.onNewFile(() => {
+    exitSourceMode()
+    applyContent('')
+    setDirtyState(false)
+  })
   api.onFileOpened((data) => {
     currentFilePath = data.path
-    dirty = false
+    setDirtyState(false)
     markApplying()
     setContent(data.content)
     updatePanelVisibility()
@@ -277,7 +310,7 @@ async function init(): Promise<void> {
     } else {
       setMarkdown(content)
     }
-    dirty = false
+    setDirtyState(false)
   })
   api.onSetTheme((theme) => applyTheme(theme))
   api.onSetFont((fontFamily) => applyEditorFont(fontFamily))

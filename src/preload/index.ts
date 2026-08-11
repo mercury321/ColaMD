@@ -14,6 +14,9 @@ export interface ElectronAPI {
   openSibling: (path: string) => Promise<boolean>
   saveFile: (content: string) => Promise<boolean>
   saveFileAs: (content: string) => Promise<boolean>
+  autoSaveDocument: (content: string) => Promise<string | null>
+  setDocumentDirty: (dirty: boolean) => void
+  closeWindowAfterSave: () => void
   exportPDF: () => Promise<boolean>
   newSlides: () => Promise<string | null>
   openAsSlides: (content: string) => Promise<boolean>
@@ -27,6 +30,7 @@ export interface ElectronAPI {
   onMenuOpen: (callback: () => void) => void
   onMenuSave: (callback: () => void) => void
   onMenuSaveAs: (callback: () => void) => void
+  onMenuSaveAndClose: (callback: () => void) => void
   onMenuExportPDF: (callback: () => void) => void
   onMenuNewSlides: (callback: () => void) => void
   onMenuOpenAsSlides: (callback: () => void) => void
@@ -54,6 +58,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openSibling: (path: string) => ipcRenderer.invoke('open-sibling', path),
   saveFile: (content: string) => ipcRenderer.invoke('save-file', content),
   saveFileAs: (content: string) => ipcRenderer.invoke('save-file-as', content),
+  autoSaveDocument: (content: string) => ipcRenderer.invoke('auto-save-document', content),
+  setDocumentDirty: (dirty: boolean) => ipcRenderer.send('set-document-dirty', dirty),
+  closeWindowAfterSave: () => ipcRenderer.send('close-window-after-save'),
   exportPDF: () => ipcRenderer.invoke('export-pdf'),
   exportSlides: (content: string) => ipcRenderer.invoke('export-slides', content),
   newSlides: () => ipcRenderer.invoke('new-slides'),
@@ -94,6 +101,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onSetTheme: (callback: (theme: string) => void) => {
     ipcRenderer.on('set-theme', (_event, theme) => callback(theme))
+  },
+  onMenuSaveAndClose: (callback: () => void) => {
+    ipcRenderer.on('menu-save-and-close', () => callback())
   },
   onSetFont: (callback: (fontFamily: string) => void) => {
     ipcRenderer.on('set-font', (_event, fontFamily) => callback(fontFamily))
