@@ -129,6 +129,7 @@ const fileToggleBtnEl = () => document.getElementById('file-toggle-btn') as HTML
 
 // --- Same-directory file panel ---
 let currentFilePath: string | null = null
+const dismissedFilePaths = new Set<string>()
 let dirty = false
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 let agentActivityState: 'idle' | 'active' | 'cooldown' = 'idle'
@@ -197,6 +198,7 @@ function renderFileList(files: import('../preload/index').SiblingFile[]): void {
   const list = fileListEl()
   list.innerHTML = ''
   for (const f of files) {
+    if (dismissedFilePaths.has(filePathKey(f.path))) continue
     const li = document.createElement('li')
     const btn = document.createElement('button')
     btn.textContent = f.name
@@ -244,6 +246,10 @@ function setContent(content: string): void {
   }
 }
 
+function filePathKey(filePath: string): string {
+  return window.electronAPI.platform === 'win32' ? filePath.toLowerCase() : filePath
+}
+
 function removeFileFromList(filePath: string): void {
   const button = fileListEl().querySelector(`button[data-path="${CSS.escape(filePath)}"]`)
   button?.closest('li')?.remove()
@@ -253,6 +259,7 @@ async function closeCurrentDocument(): Promise<void> {
   if (!currentFilePath) return
   if (dirty && !window.confirm('当前文件有未保存的修改，关闭后将丢失这些修改。是否继续？')) return
   if (!await window.electronAPI.closeCurrentDocument()) return
+  dismissedFilePaths.add(filePathKey(currentFilePath))
   removeFileFromList(currentFilePath)
   currentFilePath = null
   exitSourceMode()
@@ -356,6 +363,7 @@ async function init(): Promise<void> {
     setDirtyState(false)
   })
   api.onFileOpened((data) => {
+    if (data.path) dismissedFilePaths.delete(filePathKey(data.path))
     currentFilePath = data.path
     setDirtyState(false)
     markApplying()

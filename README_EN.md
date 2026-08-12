@@ -29,6 +29,8 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 
 ## Features
 
+- **Persistent closed entries** — A closed file stays hidden for the current window session even when other files are opened; opening it explicitly restores it.
+
 - **Close list entry** — Closing the current document removes its name from the sidebar while keeping other files in the directory.
 
 - **Keep the file list** — Closing the current document leaves its directory's files in the sidebar for immediate switching.
