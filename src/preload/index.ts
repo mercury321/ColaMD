@@ -29,6 +29,7 @@ export interface ElectronAPI {
   onFileChanged: (callback: (content: string) => void) => void
   onNewFile: (callback: () => void) => void
   onMenuCloseCurrentDocument: (callback: () => void) => void
+  onMenuDeleteCurrentDocument: (callback: (path: string) => void) => void
   onFileOpened: (callback: (data: { path: string; content: string }) => void) => void
   onMenuOpen: (callback: () => void) => void
   onMenuSave: (callback: () => void) => void
@@ -82,6 +83,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onMenuCloseCurrentDocument: (callback: () => void) => {
     ipcRenderer.on('menu-close-current-document', () => callback())
+  },
+  onMenuDeleteCurrentDocument: (callback: (path: string) => void) => {
+    ipcRenderer.on('menu-delete-current-document', (_event, path) => callback(path))
   },
   onFileOpened: (callback: (data: { path: string; content: string }) => void) => {
     ipcRenderer.on('file-opened', (_event, data) => callback(data))

@@ -1,6 +1,6 @@
 {
   "name": "colamd",
-  "version": "1.8.2-mercury.9",
+  "version": "1.8.2-mercury.1",
   "description": "The Agent Native Markdown Editor",
   "main": "dist/main/index.js",
   "author": {

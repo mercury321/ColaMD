@@ -55,6 +55,8 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 - **Improved Windows layout** — Removes the redundant blank space below the native menu.
 - **Recent files** — Keeps up to 12 recently opened Markdown files under File > Recent Files.
 - **Blank new documents** — New or closed documents use a true empty editor with the cursor ready for immediate writing.
+- **Close or delete files** — The current sidebar file can be closed from the list or permanently deleted after confirmation.
+- **Reliable document switching** — An in-app save/discard/cancel prompt keeps keyboard input active after switching files.
 - **Startup restore** — Choose whether to reopen the last document when ColaMD Mercury CE starts.
 - **Default editor entry point** — Windows users can open the system default-app settings from Help > Set as Default Markdown Editor.
 

@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell, clipboard, Tray } from 'electron'
 import { join, basename, dirname, extname } from 'path'
-import { readFile, writeFile, readdir, copyFile, mkdir } from 'fs/promises'
+import { readFile, writeFile, readdir, copyFile, mkdir, unlink } from 'fs/promises'
 import { watch, FSWatcher, existsSync, readdirSync, readFileSync } from 'fs'
 import { IncomingMessage, ServerResponse } from 'http'
 import { createServer as createHttpServer } from 'http'
@@ -669,7 +669,20 @@ function resolveImagePaths(content: string, filePath: string): string {
   })
 }
 
-function loadFileInWindow(win: BrowserWindow, filePath: string): void {
+function restoreEditorWindowFocus(win: BrowserWindow): void {
+  const focus = (): void => {
+    if (win.isDestroyed()) return
+    if (win.isMinimized()) win.restore()
+    win.focus()
+    win.webContents.focus()
+  }
+
+  focus()
+  setTimeout(focus, 80)
+  setTimeout(focus, 250)
+}
+
+function loadFileInWindow(win: BrowserWindow, filePath: string, restoreFocus = false): void {
   readFile(filePath, 'utf-8')
     .then((data) => {
       const state = getState(win)
@@ -678,6 +691,7 @@ function loadFileInWindow(win: BrowserWindow, filePath: string): void {
       updateTitle(win)
       void addRecentFile(filePath)
       win.webContents.send('file-opened', { path: filePath, content: resolveImagePaths(data, filePath) })
+      if (restoreFocus) restoreEditorWindowFocus(win)
     })
     .catch(() => {})
 }
@@ -787,10 +801,49 @@ ipcMain.on('show-file-list-context-menu', (event, filePath: unknown) => {
   if (!win || typeof filePath !== 'string') return
   const state = getState(win)
   if (!state.filePath || !sameFilePath(state.filePath, filePath)) return
-  Menu.buildFromTemplate([{
-    label: '关闭当前文档',
-    click: () => win.webContents.send('menu-close-current-document')
-  }]).popup({ window: win })
+  Menu.buildFromTemplate([
+    {
+      label: '关闭当前文件',
+      click: () => win.webContents.send('menu-close-current-document')
+    },
+    { type: 'separator' },
+    {
+      label: '删除文件',
+      click: async () => {
+        const result = await dialog.showMessageBox(win, {
+          type: 'warning',
+          title: '删除文件',
+          message: `确定要删除“${basename(filePath)}”吗？`,
+          detail: '此操作会永久删除磁盘上的文件，无法撤销。',
+          buttons: ['删除文件', '取消'],
+          defaultId: 1,
+          cancelId: 1,
+          noLink: true
+        })
+        if (result.response !== 0) return
+
+        try {
+          await unlink(filePath)
+          recentFiles = recentFiles.filter((item) => !sameFilePath(item, filePath))
+          await saveRecentFiles()
+          stopWatching(state)
+          state.filePath = null
+          state.autoSavePath = null
+          state.dirty = false
+          updateTitle(win)
+          win.webContents.send('menu-delete-current-document', filePath)
+        } catch (error) {
+          await dialog.showMessageBox(win, {
+            type: 'error',
+            title: '删除失败',
+            message: `无法删除“${basename(filePath)}”。`,
+            detail: error instanceof Error ? error.message : String(error),
+            buttons: ['确定']
+          })
+        }
+      }
+    }
+  ]).popup({ window: win })
 })
 
 ipcMain.handle('open-file', async (event) => {
@@ -865,7 +918,7 @@ ipcMain.handle('list-siblings', async (event) => {
 ipcMain.handle('open-sibling', async (event, filePath: string) => {
   const win = getWinFromEvent(event)
   if (!win || typeof filePath !== 'string') return false
-  loadFileInWindow(win, filePath)
+  loadFileInWindow(win, filePath, true)
   return true
 })
 

@@ -256,21 +256,93 @@ function removeFileFromList(filePath: string): void {
 }
 
 function focusEditor(): void {
-  window.setTimeout(() => getEditorView()?.focus(), 0)
+  // A native menu command can keep focus until after its IPC callback has
+  // returned. Focus after two paint frames, then once more after the menu
+  // teardown, so a new document is immediately ready to type into.
+  const focus = (): void => {
+    window.focus()
+    if (sourceModeActive) {
+      sourceEl().focus({ preventScroll: true })
+      return
+    }
+    const view = getEditorView()
+    if (!view) return
+    view.focus()
+    if (document.activeElement !== view.dom) view.dom.focus({ preventScroll: true })
+  }
+
+  window.requestAnimationFrame(() => {
+    focus()
+    window.requestAnimationFrame(focus)
+  })
+  window.setTimeout(focus, 120)
+  window.setTimeout(focus, 300)
 }
 
-async function closeCurrentDocument(): Promise<void> {
-  if (!currentFilePath) return
-  if (dirty && !window.confirm('当前文件有未保存的修改，关闭后将丢失这些修改。是否继续？')) return
-  if (!await window.electronAPI.closeCurrentDocument()) return
-  dismissedFilePaths.add(filePathKey(currentFilePath))
-  removeFileFromList(currentFilePath)
+function releaseEditorInputState(): void {
+  if (sourceModeActive) {
+    sourceEl().blur()
+  } else {
+    getEditorView()?.dom.blur()
+  }
+  window.getSelection()?.removeAllRanges()
+}
+
+type SwitchDecision = 'save' | 'discard' | 'cancel'
+
+function confirmDocumentSwitch(): Promise<SwitchDecision> {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.className = 'switch-confirm-overlay'
+    overlay.innerHTML = `
+      <section class="switch-confirm" role="dialog" aria-modal="true" aria-labelledby="switch-confirm-title">
+        <h3 id="switch-confirm-title">保存当前文档？</h3>
+        <p>当前文档有未保存的修改。保存后切换，也可以放弃修改。</p>
+        <div class="switch-confirm-actions">
+          <button type="button" data-decision="cancel">取消</button>
+          <button type="button" data-decision="discard">不保存</button>
+          <button class="primary" type="button" data-decision="save">保存并切换</button>
+        </div>
+      </section>`
+
+    const finish = (decision: SwitchDecision): void => {
+      overlay.remove()
+      resolve(decision)
+    }
+    overlay.addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest('button[data-decision]') as HTMLButtonElement | null
+      if (button) finish(button.dataset.decision as SwitchDecision)
+    })
+    overlay.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      finish('cancel')
+    })
+    document.body.appendChild(overlay)
+    window.requestAnimationFrame(() => {
+      overlay.querySelector<HTMLButtonElement>('button[data-decision="save"]')?.focus()
+    })
+  })
+}
+
+function showBlankDocument(filePath: string | null = currentFilePath): void {
+  if (filePath) {
+    dismissedFilePaths.add(filePathKey(filePath))
+    removeFileFromList(filePath)
+  }
   currentFilePath = null
   exitSourceMode()
   applyContent(defaultContent)
   setDirtyState(false)
   focusEditor()
   updatePanelVisibility()
+}
+
+async function closeCurrentDocument(): Promise<void> {
+  if (!currentFilePath) return
+  if (dirty && !window.confirm('当前文件有未保存的修改，关闭后将丢失这些修改。是否继续？')) return
+  if (!await window.electronAPI.closeCurrentDocument()) return
+  showBlankDocument(currentFilePath)
 }
 
 function getContent(): string {
@@ -309,12 +381,39 @@ async function init(): Promise<void> {
   })
 
   // File panel: switch to a sibling file (confirm if there are unsaved edits)
+  fileListEl().addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return
+    const btn = (e.target as HTMLElement).closest('button[data-path]') as HTMLButtonElement | null
+    if (!btn?.dataset.path || btn.dataset.path === currentFilePath) return
+    // Keep the editor as the focus owner while the save/discard confirmation
+    // opens. Otherwise Windows restores focus to this sidebar button.
+    e.preventDefault()
+  })
   fileListEl().addEventListener('click', async (e) => {
     const btn = (e.target as HTMLElement).closest('button[data-path]') as HTMLButtonElement | null
     if (!btn || !btn.dataset.path) return
     if (btn.dataset.path === currentFilePath) return
-    if (dirty && !window.confirm('当前文件有未保存的修改，切换文件会丢失这些修改。是否继续？')) return
-    await api.openSibling(btn.dataset.path)
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer)
+      autoSaveTimer = null
+    }
+    if (dirty) {
+      const decision = await confirmDocumentSwitch()
+      if (decision === 'cancel') {
+        focusEditor()
+        return
+      }
+      if (decision === 'save') {
+        const saved = await api.saveFile(getContent())
+        if (!saved) {
+          focusEditor()
+          return
+        }
+      }
+      setDirtyState(false)
+    }
+    const switched = await api.openSibling(btn.dataset.path)
+    if (!switched) focusEditor()
   })
   fileListEl().addEventListener('contextmenu', (e) => {
     const btn = (e.target as HTMLElement).closest('button[data-path]') as HTMLButtonElement | null
@@ -356,6 +455,9 @@ async function init(): Promise<void> {
   api.onMenuCloseCurrentDocument(() => {
     void closeCurrentDocument()
   })
+  api.onMenuDeleteCurrentDocument((filePath) => {
+    showBlankDocument(filePath)
+  })
   api.onNewFile(() => {
     // New documents reuse the current window. Closing an open document first
     // also removes it from the file panel without touching the file on disk.
@@ -368,14 +470,22 @@ async function init(): Promise<void> {
     setDirtyState(false)
     focusEditor()
   })
-  api.onFileOpened((data) => {
+  api.onFileOpened(async (data) => {
+    // Replacing an entire ProseMirror document while its contenteditable DOM
+    // still owns Chromium's input context can leave keyboard/IME input bound
+    // to the old document. Release it first and establish a fresh one after
+    // the new document and sidebar have both finished rendering.
+    releaseEditorInputState()
     if (data.path) dismissedFilePaths.delete(filePathKey(data.path))
     currentFilePath = data.path
     setDirtyState(false)
     markApplying()
     setContent(data.content)
     updatePanelVisibility()
-    refreshSiblings()
+    await refreshSiblings()
+    // Render completion is the final step that can replace the clicked list
+    // button, so restore focus only after that work has settled.
+    focusEditor()
   })
   api.onFileChanged((content) => {
     markApplying()
