@@ -173,7 +173,7 @@ function toggleStrongMark(): void {
   })
 }
 
-const defaultContent = `# 欢迎使用 ColaMD Mercury定制版\n\n开始在这里写作……\n`
+export const defaultContent = `# 欢迎使用 ColaMD Mercury定制版\n\n开始在这里写作……\n`
 let welcomeSelectionArmed = true
 
 export async function createEditor(

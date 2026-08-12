@@ -29,6 +29,8 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 
 ## Features
 
+- **Untitled document guidance** — Closing or creating a document shows a replaceable Chinese writing prompt instead of a blank editor page.
+
 - **Close and create documents** — Right-click the current file in the left panel to close it without deleting it; new blank documents reuse the current window.
 
 - **Long-document loading** — Coalesces code-block button scans to avoid repeated full-document traversals; unusual content falls back to source mode so it remains accessible.

@@ -1,4 +1,4 @@
-import { createEditor, getMarkdown, setMarkdown, showMathModal } from './editor/editor'
+import { createEditor, defaultContent, getMarkdown, setMarkdown, showMathModal } from './editor/editor'
 import { SearchPanel } from './editor/search-panel'
 import { applyTheme, loadSavedTheme } from './themes/theme-manager'
 import './themes/base.css'
@@ -247,7 +247,7 @@ async function closeCurrentDocument(): Promise<void> {
   if (!await window.electronAPI.closeCurrentDocument()) return
   currentFilePath = null
   exitSourceMode()
-  applyContent('')
+  applyContent(defaultContent)
   setDirtyState(false)
   updatePanelVisibility()
 }
@@ -343,7 +343,7 @@ async function init(): Promise<void> {
       return
     }
     exitSourceMode()
-    applyContent('')
+    applyContent(defaultContent)
     setDirtyState(false)
   })
   api.onFileOpened((data) => {
