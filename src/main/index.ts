@@ -770,6 +770,29 @@ ipcMain.on('close-window-after-save', (event) => {
   win.close()
 })
 
+ipcMain.handle('close-current-document', (event) => {
+  const win = getWinFromEvent(event)
+  if (!win) return false
+  const state = getState(win)
+  stopWatching(state)
+  state.filePath = null
+  state.autoSavePath = null
+  state.dirty = false
+  updateTitle(win)
+  return true
+})
+
+ipcMain.on('show-file-list-context-menu', (event, filePath: unknown) => {
+  const win = getWinFromEvent(event)
+  if (!win || typeof filePath !== 'string') return
+  const state = getState(win)
+  if (!state.filePath || !sameFilePath(state.filePath, filePath)) return
+  Menu.buildFromTemplate([{
+    label: '关闭当前文档',
+    click: () => win.webContents.send('menu-close-current-document')
+  }]).popup({ window: win })
+})
+
 ipcMain.handle('open-file', async (event) => {
   const win = getWinFromEvent(event)
   if (!win) return null
@@ -1283,7 +1306,7 @@ function buildMenu(): void {
         {
           label: '新建',
           accelerator: 'CmdOrCtrl+N',
-          click: () => createWindow()
+          click: () => sendToFocused('new-file')
         },
         {
           label: '新建幻灯片…',

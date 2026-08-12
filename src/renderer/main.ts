@@ -241,6 +241,17 @@ function setContent(content: string): void {
   }
 }
 
+async function closeCurrentDocument(): Promise<void> {
+  if (!currentFilePath) return
+  if (dirty && !window.confirm('当前文件有未保存的修改，关闭后将丢失这些修改。是否继续？')) return
+  if (!await window.electronAPI.closeCurrentDocument()) return
+  currentFilePath = null
+  exitSourceMode()
+  applyContent('')
+  setDirtyState(false)
+  updatePanelVisibility()
+}
+
 function getContent(): string {
   if (sourceModeActive) return sourceEl().value
   return getMarkdown()
@@ -284,6 +295,12 @@ async function init(): Promise<void> {
     if (dirty && !window.confirm('当前文件有未保存的修改，切换文件会丢失这些修改。是否继续？')) return
     await api.openSibling(btn.dataset.path)
   })
+  fileListEl().addEventListener('contextmenu', (e) => {
+    const btn = (e.target as HTMLElement).closest('button[data-path]') as HTMLButtonElement | null
+    if (!btn?.dataset.path || btn.dataset.path !== currentFilePath) return
+    e.preventDefault()
+    api.showFileListContextMenu(btn.dataset.path)
+  })
 
   fileToggleBtnEl().addEventListener('click', togglePanel)
   api.onToggleFilePanel(() => togglePanel())
@@ -315,7 +332,16 @@ async function init(): Promise<void> {
   })
   api.onMenuExportPDF(() => api.exportPDF())
 
+  api.onMenuCloseCurrentDocument(() => {
+    void closeCurrentDocument()
+  })
   api.onNewFile(() => {
+    // New documents reuse the current window. Closing an open document first
+    // also removes it from the file panel without touching the file on disk.
+    if (currentFilePath) {
+      void closeCurrentDocument()
+      return
+    }
     exitSourceMode()
     applyContent('')
     setDirtyState(false)

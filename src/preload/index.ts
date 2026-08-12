@@ -12,6 +12,8 @@ export interface ElectronAPI {
   openFilePath: (path: string) => Promise<{ path: string; content: string } | null>
   listSiblings: () => Promise<SiblingFile[] | null>
   openSibling: (path: string) => Promise<boolean>
+  closeCurrentDocument: () => Promise<boolean>
+  showFileListContextMenu: (path: string) => void
   saveFile: (content: string) => Promise<boolean>
   saveFileAs: (content: string) => Promise<boolean>
   autoSaveDocument: (content: string) => Promise<string | null>
@@ -26,6 +28,7 @@ export interface ElectronAPI {
   openExternal: (url: string) => void
   onFileChanged: (callback: (content: string) => void) => void
   onNewFile: (callback: () => void) => void
+  onMenuCloseCurrentDocument: (callback: () => void) => void
   onFileOpened: (callback: (data: { path: string; content: string }) => void) => void
   onMenuOpen: (callback: () => void) => void
   onMenuSave: (callback: () => void) => void
@@ -56,6 +59,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFilePath: (path: string) => ipcRenderer.invoke('open-file-path', path),
   listSiblings: () => ipcRenderer.invoke('list-siblings'),
   openSibling: (path: string) => ipcRenderer.invoke('open-sibling', path),
+  closeCurrentDocument: () => ipcRenderer.invoke('close-current-document'),
+  showFileListContextMenu: (path: string) => ipcRenderer.send('show-file-list-context-menu', path),
   saveFile: (content: string) => ipcRenderer.invoke('save-file', content),
   saveFileAs: (content: string) => ipcRenderer.invoke('save-file-as', content),
   autoSaveDocument: (content: string) => ipcRenderer.invoke('auto-save-document', content),
@@ -74,6 +79,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onNewFile: (callback: () => void) => {
     ipcRenderer.on('new-file', () => callback())
+  },
+  onMenuCloseCurrentDocument: (callback: () => void) => {
+    ipcRenderer.on('menu-close-current-document', () => callback())
   },
   onFileOpened: (callback: (data: { path: string; content: string }) => void) => {
     ipcRenderer.on('file-opened', (_event, data) => callback(data))

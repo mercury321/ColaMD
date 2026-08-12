@@ -29,6 +29,8 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 
 ## Features
 
+- **Close and create documents** — Right-click the current file in the left panel to close it without deleting it; new blank documents reuse the current window.
+
 - **Long-document loading** — Coalesces code-block button scans to avoid repeated full-document traversals; unusual content falls back to source mode so it remains accessible.
 
 - **File-opening fix** — Reliably opens `.md` and `.txt` files launched by path or double-clicked on Windows.
