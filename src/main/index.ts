@@ -122,6 +122,14 @@ function openRecentFile(filePath: string): void {
   openFile(filePath)
 }
 
+function filePathsFromCommandLine(args: string[]): string[] {
+  return args.filter((arg) => {
+    if (arg.startsWith('-') || !existsSync(arg)) return false
+    const extension = extname(arg).toLowerCase()
+    return MARKDOWN_EXTENSIONS.includes(extension) || extension === '.txt'
+  })
+}
+
 function decodeWindowsOutput(output: Buffer): string {
   if (output.length >= 2 && output[0] === 0xff && output[1] === 0xfe) {
     return output.toString('utf16le')
@@ -1445,8 +1453,7 @@ if (!gotSingleInstanceLock) {
   app.quit()
 } else {
   app.on('second-instance', (_event, commandLine) => {
-    const args = commandLine.slice(app.isPackaged ? 1 : 2)
-    const fileArgs = args.filter((arg) => !arg.startsWith('-'))
+    const fileArgs = filePathsFromCommandLine(commandLine)
     for (const filePath of fileArgs) openFile(filePath)
     const focusedWindow = BrowserWindow.getAllWindows()[0]
     if (focusedWindow) {
@@ -1462,8 +1469,7 @@ app.whenReady().then(async () => {
   buildMenu()
 
   // Check command line args for file paths
-  const args = process.argv.slice(app.isPackaged ? 1 : 2)
-  const fileArgs = args.filter((arg) => !arg.startsWith('-'))
+  const fileArgs = filePathsFromCommandLine(process.argv)
   if (fileArgs.length > 0) {
     pendingFilePaths = fileArgs
   }
