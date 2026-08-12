@@ -29,6 +29,9 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 
 ## Features
 
+- **Upstream themes** — Adds nine built-in themes: Sepia, Notion, Bear, Writer, Solarized Dark, Nord, Gruvbox, Dracula, and Midnight.
+- **Editing efficiency** — Copy code blocks with one click and toggle bold for selected text with `Ctrl+B`.
+
 ### Mercury custom edition updates
 
 - **Chinese menus** — File, Edit, View, Theme, and Help menus are localized.

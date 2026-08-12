@@ -1218,9 +1218,19 @@ function buildMenu(): void {
 
   const themeSubmenu: Electron.MenuItemConstructorOptions[] = [
     { label: '明亮', click: () => sendToFocused('set-theme', 'light') },
-    { label: '深色', click: () => sendToFocused('set-theme', 'dark') },
     { label: '雅致', click: () => sendToFocused('set-theme', 'elegant') },
     { label: '报刊', click: () => sendToFocused('set-theme', 'newsprint') },
+    { label: '简白', click: () => sendToFocused('set-theme', 'notion') },
+    { label: '作家', click: () => sendToFocused('set-theme', 'writer') },
+    { label: '熊红', click: () => sendToFocused('set-theme', 'bear') },
+    { label: '羊皮纸', click: () => sendToFocused('set-theme', 'sepia') },
+    { type: 'separator' },
+    { label: '深色', click: () => sendToFocused('set-theme', 'dark') },
+    { label: '暖木', click: () => sendToFocused('set-theme', 'gruvbox') },
+    { label: '午夜', click: () => sendToFocused('set-theme', 'midnight') },
+    { label: '夜航', click: () => sendToFocused('set-theme', 'solarized-dark') },
+    { label: '极地', click: () => sendToFocused('set-theme', 'nord') },
+    { label: '德古拉', click: () => sendToFocused('set-theme', 'dracula') },
   ]
   if (customThemeItems.length > 0) {
     themeSubmenu.push({ type: 'separator' }, ...customThemeItems)

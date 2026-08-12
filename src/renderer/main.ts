@@ -2,6 +2,7 @@ import { createEditor, getMarkdown, setMarkdown, showMathModal } from './editor/
 import { SearchPanel } from './editor/search-panel'
 import { applyTheme, loadSavedTheme } from './themes/theme-manager'
 import './themes/base.css'
+import './themes/premium.css'
 
 const FONT_STORAGE_KEY = 'colamd-editor-font'
 const FONT_NAME_STORAGE_KEY = 'colamd-editor-font-name'

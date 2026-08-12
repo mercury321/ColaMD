@@ -104,6 +104,60 @@ function enhanceClipboard(e: ClipboardEvent): void {
   e.clipboardData?.setData('text/html', doc.body.innerHTML)
 }
 
+async function copyText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch {
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.readOnly = true
+    textarea.style.cssText = 'position:fixed;opacity:0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    textarea.remove()
+  }
+}
+
+function decorateCodeBlocks(root: HTMLElement): void {
+  root.querySelectorAll('pre').forEach((pre) => {
+    if (pre.querySelector('.code-copy-btn') || !pre.querySelector('code')) return
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'code-copy-btn'
+    button.textContent = '复制'
+    button.title = '复制代码'
+    button.contentEditable = 'false'
+    button.addEventListener('mousedown', (event) => event.preventDefault())
+    button.addEventListener('click', async (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      await copyText(pre.querySelector('code')?.textContent ?? '')
+      button.textContent = '已复制 ✓'
+      button.classList.add('copied')
+      window.setTimeout(() => {
+        button.textContent = '复制'
+        button.classList.remove('copied')
+      }, 1500)
+    })
+    pre.appendChild(button)
+  })
+}
+
+function toggleStrongMark(): void {
+  if (!editorInstance) return
+  editorInstance.action((ctx) => {
+    const view = ctx.get(editorViewCtx)
+    const { from, to, empty } = view.state.selection
+    if (empty) return
+    const strong = view.state.schema.marks.strong
+    const transaction = view.state.doc.rangeHasMark(from, to, strong)
+      ? view.state.tr.removeMark(from, to, strong)
+      : view.state.tr.addMark(from, to, strong.create())
+    view.dispatch(transaction)
+  })
+}
+
 const defaultContent = `# 欢迎使用 ColaMD Mercury定制版\n\n开始在这里写作……\n`
 let welcomeSelectionArmed = true
 
@@ -113,6 +167,8 @@ export async function createEditor(
 ): Promise<Editor> {
   const root = document.getElementById(rootId)
   if (!root) throw new Error(`Element #${rootId} not found`)
+  decorateCodeBlocks(root)
+  new MutationObserver(() => decorateCodeBlocks(root)).observe(root, { childList: true, subtree: true })
 
   editorInstance = await Editor.make()
     .config((ctx) => {
@@ -152,6 +208,12 @@ export async function createEditor(
   // Enhance clipboard with inline styles for rich text paste (e.g. WeChat)
   root.addEventListener('copy', enhanceClipboard)
   root.addEventListener('cut', enhanceClipboard)
+
+  root.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented || !(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'b') return
+    event.preventDefault()
+    toggleStrongMark()
+  })
 
   // The untouched welcome document acts like a placeholder: the first left
   // click selects it all, so the next paste or keystroke replaces it cleanly.
