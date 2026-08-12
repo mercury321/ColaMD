@@ -244,10 +244,16 @@ function setContent(content: string): void {
   }
 }
 
+function removeFileFromList(filePath: string): void {
+  const button = fileListEl().querySelector(`button[data-path="${CSS.escape(filePath)}"]`)
+  button?.closest('li')?.remove()
+}
+
 async function closeCurrentDocument(): Promise<void> {
   if (!currentFilePath) return
   if (dirty && !window.confirm('当前文件有未保存的修改，关闭后将丢失这些修改。是否继续？')) return
   if (!await window.electronAPI.closeCurrentDocument()) return
+  removeFileFromList(currentFilePath)
   currentFilePath = null
   exitSourceMode()
   applyContent(defaultContent)
