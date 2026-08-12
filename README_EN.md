@@ -29,6 +29,8 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 
 ## Features
 
+- **Long-document loading** — Coalesces code-block button scans to avoid repeated full-document traversals; unusual content falls back to source mode so it remains accessible.
+
 - **File-opening fix** — Reliably opens `.md` and `.txt` files launched by path or double-clicked on Windows.
 
 - **Upstream themes** — Adds nine built-in themes: Sepia, Notion, Bear, Writer, Solarized Dark, Nord, Gruvbox, Dracula, and Midnight.

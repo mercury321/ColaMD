@@ -230,8 +230,14 @@ function setContent(content: string): void {
   if (isSlidesContent(content)) {
     enterSourceMode(content)
   } else {
-    exitSourceMode()
-    setMarkdown(content)
+    try {
+      exitSourceMode()
+      setMarkdown(content)
+    } catch {
+      // Keep a document accessible even when the rich editor cannot parse an
+      // unusual or exceptionally large Markdown structure.
+      enterSourceMode(content)
+    }
   }
 }
 

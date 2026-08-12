@@ -144,6 +144,21 @@ function decorateCodeBlocks(root: HTMLElement): void {
   })
 }
 
+function setupCodeBlockCopy(root: HTMLElement): void {
+  let refreshTimer: number | null = null
+  const scheduleRefresh = (): void => {
+    if (refreshTimer !== null) window.clearTimeout(refreshTimer)
+    // Rendering a long Markdown file creates many DOM mutations. Coalesce them
+    // into one scan after rendering settles instead of scanning on every node.
+    refreshTimer = window.setTimeout(() => {
+      refreshTimer = null
+      decorateCodeBlocks(root)
+    }, 80)
+  }
+  new MutationObserver(scheduleRefresh).observe(root, { childList: true, subtree: true })
+  scheduleRefresh()
+}
+
 function toggleStrongMark(): void {
   if (!editorInstance) return
   editorInstance.action((ctx) => {
@@ -167,8 +182,7 @@ export async function createEditor(
 ): Promise<Editor> {
   const root = document.getElementById(rootId)
   if (!root) throw new Error(`Element #${rootId} not found`)
-  decorateCodeBlocks(root)
-  new MutationObserver(() => decorateCodeBlocks(root)).observe(root, { childList: true, subtree: true })
+  setupCodeBlockCopy(root)
 
   editorInstance = await Editor.make()
     .config((ctx) => {
