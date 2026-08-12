@@ -1,5 +1,5 @@
 import { Editor, rootCtx, defaultValueCtx, editorViewCtx, serializerCtx, remarkPluginsCtx, remarkStringifyOptionsCtx } from '@milkdown/kit/core'
-import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state'
+import { Plugin, PluginKey } from '@milkdown/kit/prose/state'
 import { DecorationSet, type EditorView } from '@milkdown/kit/prose/view'
 import remarkBreaks from 'remark-breaks'
 import { commonmark } from '@milkdown/kit/preset/commonmark'
@@ -173,8 +173,9 @@ function toggleStrongMark(): void {
   })
 }
 
-export const defaultContent = `# 欢迎使用 ColaMD Mercury定制版\n\n开始在这里写作……\n`
-let welcomeSelectionArmed = true
+// New documents deliberately start empty so a click always places the caret
+// naturally, without placeholder text or selection interception.
+export const defaultContent = ''
 
 export async function createEditor(
   rootId: string,
@@ -202,7 +203,6 @@ export async function createEditor(
       })
       if (onChange) {
         ctx.get(listenerCtx).markdownUpdated((_ctx, markdown) => {
-          if (markdown.trim() !== defaultContent.trim()) welcomeSelectionArmed = false
           onChange(markdown)
         })
       }
@@ -227,19 +227,6 @@ export async function createEditor(
     if (event.defaultPrevented || !(event.metaKey || event.ctrlKey) || event.altKey || event.key.toLowerCase() !== 'b') return
     event.preventDefault()
     toggleStrongMark()
-  })
-
-  // The untouched welcome document acts like a placeholder: the first left
-  // click selects it all, so the next paste or keystroke replaces it cleanly.
-  root.addEventListener('mousedown', (event) => {
-    if (event.button !== 0 || !welcomeSelectionArmed || !editorInstance) return
-    welcomeSelectionArmed = false
-    event.preventDefault()
-    editorInstance.action((ctx) => {
-      const view = ctx.get(editorViewCtx)
-      view.focus()
-      view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, 0, view.state.doc.content.size)))
-    })
   })
 
   // Cmd+click (Mac) / Ctrl+click (Win/Linux) to open links in browser
@@ -328,7 +315,6 @@ export function getMarkdown(): string {
 
 export function setMarkdown(content: string): void {
   if (!editorInstance) return
-  welcomeSelectionArmed = content.trim() === defaultContent.trim()
   editorInstance.action(replaceAll(content))
 }
 

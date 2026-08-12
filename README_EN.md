@@ -54,6 +54,7 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 - **Persistent font settings** — The selected body font is remembered between launches.
 - **Improved Windows layout** — Removes the redundant blank space below the native menu.
 - **Recent files** — Keeps up to 12 recently opened Markdown files under File > Recent Files.
+- **Blank new documents** — New or closed documents use a true empty editor with the cursor ready for immediate writing.
 - **Startup restore** — Choose whether to reopen the last document when ColaMD Mercury CE starts.
 - **Default editor entry point** — Windows users can open the system default-app settings from Help > Set as Default Markdown Editor.
 

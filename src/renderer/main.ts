@@ -1,4 +1,4 @@
-import { createEditor, defaultContent, getMarkdown, setMarkdown, showMathModal } from './editor/editor'
+import { createEditor, defaultContent, getEditorView, getMarkdown, setMarkdown, showMathModal } from './editor/editor'
 import { SearchPanel } from './editor/search-panel'
 import { applyTheme, loadSavedTheme } from './themes/theme-manager'
 import './themes/base.css'
@@ -255,6 +255,10 @@ function removeFileFromList(filePath: string): void {
   button?.closest('li')?.remove()
 }
 
+function focusEditor(): void {
+  window.setTimeout(() => getEditorView()?.focus(), 0)
+}
+
 async function closeCurrentDocument(): Promise<void> {
   if (!currentFilePath) return
   if (dirty && !window.confirm('当前文件有未保存的修改，关闭后将丢失这些修改。是否继续？')) return
@@ -265,6 +269,7 @@ async function closeCurrentDocument(): Promise<void> {
   exitSourceMode()
   applyContent(defaultContent)
   setDirtyState(false)
+  focusEditor()
   updatePanelVisibility()
 }
 
@@ -361,6 +366,7 @@ async function init(): Promise<void> {
     exitSourceMode()
     applyContent(defaultContent)
     setDirtyState(false)
+    focusEditor()
   })
   api.onFileOpened((data) => {
     if (data.path) dismissedFilePaths.delete(filePathKey(data.path))
