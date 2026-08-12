@@ -29,6 +29,8 @@ If ColaMD is useful to you, please give the project a ⭐ Star.
 
 ## Features
 
+- **Keep the file list** — Closing the current document leaves its directory's files in the sidebar for immediate switching.
+
 - **Untitled document guidance** — Closing or creating a document shows a replaceable Chinese writing prompt instead of a blank editor page.
 
 - **Close and create documents** — Right-click the current file in the left panel to close it without deleting it; new blank documents reuse the current window.

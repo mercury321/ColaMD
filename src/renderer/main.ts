@@ -178,7 +178,10 @@ function applyContent(content: string): void {
 }
 
 function updatePanelVisibility(): void {
-  const show = currentFilePath !== null && !manualHidden
+  // After closing the active document, keep the last directory's file list
+  // visible so another document can be opened immediately from the sidebar.
+  const hasFiles = fileListEl().childElementCount > 0
+  const show = (currentFilePath !== null || hasFiles) && !manualHidden
   filePanelEl().hidden = !show
   document.body.classList.toggle('show-file-panel', show)
   fileToggleBtnEl().classList.toggle('active', show)
