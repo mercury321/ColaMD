@@ -80,7 +80,7 @@ win:
   # Artifact names must stay distinct from the mac ones: the mac zips are
   # ColaMD-<version>-<arch>.zip, so a plain win zip would collide with the mac
   # x64 zip in the release assets.
-  artifactName: ${productName}-${version}-win-${arch}.${ext}
+  artifactName: ColaMD-Mercury-CE-${version}-win-${arch}.${ext}
   target:
     - nsis
     # Green build: unzip anywhere and run, nothing to install. No file
@@ -101,7 +101,7 @@ nsis:
   # so the updater requested a filename that never existed on the release
   # (ColaMD-Setup-2.0.0.exe vs ColaMD.Setup.2.0.0.exe) and every in-app update
   # on Windows failed with a silent 404 (#56).
-  artifactName: ${productName}-Setup-${version}.${ext}
+  artifactName: ColaMD-Mercury-CE-Setup-${version}.${ext}
   oneClick: false
   allowToChangeInstallationDirectory: true
 
