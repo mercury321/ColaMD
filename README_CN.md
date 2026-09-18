@@ -1,6 +1,6 @@
-的觉得
+# ColaMD Mercury 定制版
 
-<br />
+> 基于 [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD) v2.4.3 的 Mercury321 定制版本，英文名称为 ColaMD Mercury CE。
 
 > 一款免费、优雅、谁都能上手的 Markdown 编辑器。没有工具栏，没有多余的东西，而且文件永远是最新的。
 
@@ -13,7 +13,7 @@ ColaMD 是一款开源、免费、优雅的 Markdown 编辑器，用于写作、
 无论是什么在写这个文件（Claude Code、Codex 这类 AI Agent，一个脚本，或另一个编辑器），ColaMD 都会立刻显示最新内容，不用重开文件，也不用手动刷新。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/release/marswaveai/colamd.svg)](https://github.com/marswaveai/colamd/releases)
+[![GitHub release](https://img.shields.io/github/release/mercury321/colamd.svg)](https://github.com/mercury321/colamd/releases)
 
 [下载](#下载) | [功能](#功能)
 

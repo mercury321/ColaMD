@@ -85,6 +85,7 @@ function setMarkdownProgrammatically(content: string, flushHistory = false): voi
 
 // --- Unsaved-state tracking + auto-save ---
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
+let draftBackupTimer: ReturnType<typeof setTimeout> | null = null
 let documentRevision = 0
 let saveQueue: Promise<void> = Promise.resolve()
 
@@ -707,6 +708,7 @@ function setDirty(): void {
   showSaveStatus('dirty')
   markActiveTabDirty()
   scheduleAutosave()
+  scheduleDraftBackup()
 }
 
 function clearDirty(): void {
@@ -743,6 +745,16 @@ function scheduleAutosave(): void {
     autosaveTimer = null
     void runAutosave()
   }, 1000)
+}
+
+function scheduleDraftBackup(): void {
+  if (draftBackupTimer) clearTimeout(draftBackupTimer)
+  const content = getContent()
+  const sourcePath = currentFilePath
+  draftBackupTimer = setTimeout(() => {
+    draftBackupTimer = null
+    void window.electronAPI.backupDraft(content, sourcePath)
+  }, 1200)
 }
 
 async function runAutosave(): Promise<void> {
@@ -1507,10 +1519,28 @@ async function init(): Promise<void> {
     const kind = btn?.dataset.kind
     if (!path || kind === 'parent') return
     e.preventDefault()
-    void api.showEntryContextMenu(path, kind === 'directory' ? 'directory' : 'file')
+    const isOpen = kind === 'file' && tabs.some((tab) => tab.filePath === path)
+    void api.showEntryContextMenu(path, kind === 'directory' ? 'directory' : 'file', isOpen)
   })
   initPanelResize()
   bindTabBar(api)
+  api.onEntryMenuAction(({ action, path }) => {
+    const tab = tabs.find((candidate) => candidate.filePath === path)
+    if (!tab) {
+      if (action === 'deleted') void refreshSiblings()
+      return
+    }
+    if (action === 'deleted') {
+      tab.dirty = false
+      if (tab.id === activeTabId) {
+        dirty = false
+        reportDirty()
+      }
+    }
+    void closeTab(tab.id).then(() => {
+      if (action === 'deleted') void refreshSiblings()
+    })
+  })
   // The launch document (the welcome screen or a restored file) is a tab from
   // the first frame, so the strip never renders without one.
   ensureTab()

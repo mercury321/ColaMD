@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell, session, clipboard, screen, nativeTheme } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, session, clipboard, screen, nativeTheme, Tray } from 'electron'
 import { execFile } from 'child_process'
 import { autoUpdater } from 'electron-updater'
 import { join, basename, dirname, extname, isAbsolute, resolve, relative } from 'path'
@@ -7,6 +7,8 @@ import { appendFile, readFile, writeFile, readdir, copyFile, mkdir, stat } from 
 import { watch, FSWatcher, existsSync, readdirSync, readFileSync, writeFileSync, statSync } from 'fs'
 
 const startupStartedAt = performance.now()
+app.setName('ColaMD Mercury CE')
+const APP_NAME = `ColaMD Mercury定制版 v${app.getVersion()}`
 const startupTraceEnabled = process.env.COLAMD_STARTUP_TRACE === '1'
 const startupMarks: Record<string, number> = { 'main-loaded': 0 }
 let startupTraceWritten = false
@@ -27,6 +29,45 @@ function writeStartupTrace(): void {
 
 const themesDir = join(app.getPath('home'), '.colamd', 'themes')
 const releaseNoticePath = join(app.getPath('userData'), 'release-notice.json')
+const mercurySettingsPath = join(app.getPath('userData'), 'mercury-settings.json')
+
+interface MercurySettings {
+  alwaysOnTop: boolean
+  minimizeToTray: boolean
+  autoBackupEnabled: boolean
+  autoBackupDirectory: string | null
+}
+
+function loadMercurySettings(): MercurySettings {
+  const defaults: MercurySettings = {
+    alwaysOnTop: false,
+    minimizeToTray: false,
+    autoBackupEnabled: true,
+    autoBackupDirectory: null
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(mercurySettingsPath, 'utf-8')) as Partial<MercurySettings>
+    return {
+      alwaysOnTop: typeof parsed.alwaysOnTop === 'boolean' ? parsed.alwaysOnTop : defaults.alwaysOnTop,
+      minimizeToTray: typeof parsed.minimizeToTray === 'boolean' ? parsed.minimizeToTray : defaults.minimizeToTray,
+      autoBackupEnabled: typeof parsed.autoBackupEnabled === 'boolean' ? parsed.autoBackupEnabled : defaults.autoBackupEnabled,
+      autoBackupDirectory: typeof parsed.autoBackupDirectory === 'string' && parsed.autoBackupDirectory ? parsed.autoBackupDirectory : null
+    }
+  } catch {
+    return defaults
+  }
+}
+
+let mercurySettings = loadMercurySettings()
+let tray: Tray | null = null
+const draftPaths = new Map<string, string>()
+
+function persistMercurySettings(): void {
+  try {
+    mkdir(dirname(mercurySettingsPath), { recursive: true }).catch(() => {})
+    writeFileSync(mercurySettingsPath, JSON.stringify(mercurySettings, null, 2), 'utf-8')
+  } catch { /* preferences must never interrupt editing */ }
+}
 
 // The shell's top row, in CSS pixels: the window controls overlay on Windows has
 // to be told the same height the renderer draws (design.md, one row).
@@ -161,7 +202,7 @@ try {
 } catch { /* first run or unreadable preference */ }
 
 function getPreferredLanguage(): UiLanguage {
-  return preferredLanguage ?? (app.getLocale().toLowerCase().startsWith('zh') ? 'zh' : 'en')
+  return preferredLanguage ?? 'zh'
 }
 
 // Dialogs the user sees during normal use follow the UI language too: they were
@@ -306,6 +347,97 @@ function getWinFromEvent(event: Electron.IpcMainInvokeEvent): BrowserWindow | nu
   return BrowserWindow.fromWebContents(event.sender)
 }
 
+function showMainWindow(): void {
+  const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed())
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+function syncTray(): void {
+  if (!mercurySettings.minimizeToTray) {
+    tray?.destroy()
+    tray = null
+    return
+  }
+  if (!tray) {
+    const iconPath = app.isPackaged ? join(process.resourcesPath, 'icon.png') : join(__dirname, '../../resources/icon.png')
+    tray = new Tray(iconPath)
+    tray.on('click', showMainWindow)
+  }
+  tray.setToolTip(APP_NAME)
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: uiText('显示主窗口', 'Show Main Window'), click: showMainWindow },
+    { type: 'separator' },
+    { label: uiText('退出', 'Quit'), click: () => app.quit() }
+  ]))
+}
+
+function setAlwaysOnTop(enabled: boolean): void {
+  mercurySettings.alwaysOnTop = enabled
+  for (const win of BrowserWindow.getAllWindows()) win.setAlwaysOnTop(enabled)
+  persistMercurySettings()
+  buildMenu()
+}
+
+function setMinimizeToTray(enabled: boolean): void {
+  mercurySettings.minimizeToTray = enabled
+  persistMercurySettings()
+  syncTray()
+  buildMenu()
+}
+
+function defaultAutoBackupDirectory(): string {
+  return join(app.isPackaged ? dirname(process.execPath) : app.getAppPath(), 'Out')
+}
+
+function activeAutoBackupDirectory(): string {
+  return mercurySettings.autoBackupDirectory ?? defaultAutoBackupDirectory()
+}
+
+function safeDraftName(content: string, sourcePath: string | null): string {
+  if (sourcePath) return basename(sourcePath)
+  const heading = content.match(/^#\s+(.+)/m)?.[1] ?? content.match(/^\s*(.+)$/m)?.[1] ?? ''
+  const base = heading.trim().replace(/[/\\:*?"<>|]/g, '').slice(0, 60) || uiText('未命名文档', 'Untitled')
+  return `${base}.md`
+}
+
+async function backupDraft(win: BrowserWindow, content: string, sourcePath: string | null): Promise<string | null> {
+  if (!mercurySettings.autoBackupEnabled || !content.trim()) return null
+  const key = sourcePath || `untitled:${win.id}`
+  const fallback = join(app.getPath('userData'), 'Out')
+  for (const directory of [activeAutoBackupDirectory(), fallback]) {
+    try {
+      await mkdir(directory, { recursive: true })
+      const known = draftPaths.get(key)
+      const destination = known && dirname(known) === directory ? known : join(directory, safeDraftName(content, sourcePath))
+      await writeFile(destination, content, 'utf-8')
+      draftPaths.set(key, destination)
+      return destination
+    } catch { /* install folders may be read-only, then userData keeps the draft */ }
+  }
+  return null
+}
+
+async function chooseAutoBackupDirectory(): Promise<void> {
+  const win = BrowserWindow.getFocusedWindow() ?? undefined
+  const options: Electron.OpenDialogOptions = {
+    title: uiText('选择自动保存位置', 'Choose Auto-save Location'),
+    defaultPath: activeAutoBackupDirectory(),
+    properties: ['openDirectory', 'createDirectory']
+  }
+  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options)
+  if (result.canceled || !result.filePaths[0]) return
+  mercurySettings.autoBackupDirectory = result.filePaths[0]
+  persistMercurySettings()
+}
+
+function openAutoBackupDirectory(): void {
+  const directory = activeAutoBackupDirectory()
+  void mkdir(directory, { recursive: true }).then(() => shell.openPath(directory))
+}
+
 // Modification time of the file on disk, or 0 when it cannot be read.
 function fileMtimeMs(filePath: string): number {
   try {
@@ -356,6 +488,7 @@ function createWindow(filePath?: string, initialContent?: string, initialBrowseP
     // hidden and Alt still reveals it the way Windows users expect. The row gets
     // its own menu button, which pops the same menu.
     ...(isWindows ? { autoHideMenuBar: true } : {}),
+    alwaysOnTop: mercurySettings.alwaysOnTop,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
@@ -375,6 +508,16 @@ function createWindow(filePath?: string, initialContent?: string, initialBrowseP
   }
   win.on('enter-full-screen', () => sendFullscreen(true))
   win.on('leave-full-screen', () => sendFullscreen(false))
+  win.on('page-title-updated', (event) => {
+    event.preventDefault()
+    updateTitle(win)
+  })
+  win.webContents.on('context-menu', (_event, params) => showEditorContextMenu(win, params))
+  win.on('minimize', () => {
+    if (!mercurySettings.minimizeToTray) return
+    setTimeout(() => { if (!win.isDestroyed()) win.hide() }, 0)
+    syncTray()
+  })
 
   const state = getState(win)
   if (initialBrowsePath) state.browsePath = initialBrowsePath
@@ -460,8 +603,8 @@ function createWindow(filePath?: string, initialContent?: string, initialBrowseP
 
 function updateTitle(win: BrowserWindow): void {
   const state = getState(win)
-  const fileName = state.filePath ? basename(state.filePath) : 'Untitled'
-  win.setTitle(`${fileName} — ColaMD`)
+  const fileName = state.filePath ? basename(state.filePath) : uiText('未命名', 'Untitled')
+  win.setTitle(`${fileName} · ${APP_NAME}`)
 }
 
 function suggestFileName(win: BrowserWindow, content?: string): string | undefined {
@@ -814,6 +957,37 @@ function copyToClipboard(text: string): void {
   void write?.catch((err: unknown) => { console.error('clipboard write failed:', err) })
 }
 
+function copySelectionAsFormatted(win: BrowserWindow): void {
+  // The renderer's copy handler places both text/plain and text/html on the
+  // clipboard; using the native copy command preserves its Markdown-aware HTML.
+  win.webContents.copy()
+}
+
+function showEditorContextMenu(win: BrowserWindow, params: Electron.ContextMenuParams): void {
+  const zh = getPreferredLanguage() === 'zh'
+  const items: Electron.MenuItemConstructorOptions[] = []
+  if (/^https?:\/\//i.test(params.linkURL)) {
+    items.push({ label: zh ? '在浏览器中打开链接' : 'Open Link in Browser', click: () => { void shell.openExternal(params.linkURL) } })
+  }
+  if (params.selectionText.trim()) {
+    if (items.length) items.push({ type: 'separator' })
+    items.push(
+      { label: zh ? '复制为纯文本' : 'Copy as Plain Text', click: () => copyToClipboard(params.selectionText) },
+      { label: zh ? '复制为带格式的文本' : 'Copy with Formatting', click: () => copySelectionAsFormatted(win) },
+      { type: 'separator' }
+    )
+  }
+  if (params.editFlags.canCut) items.push({ label: zh ? '剪切' : 'Cut', role: 'cut' })
+  if (params.editFlags.canPaste) items.push({ label: zh ? '粘贴' : 'Paste', role: 'paste' })
+  if (params.editFlags.canSelectAll) items.push({ label: zh ? '全选' : 'Select All', role: 'selectAll' })
+  if (items.length && items[items.length - 1].type !== 'separator') items.push({ type: 'separator' })
+  items.push(
+    { label: zh ? '查找…' : 'Find…', accelerator: 'CmdOrCtrl+F', click: () => win.webContents.send('editor:search') },
+    { label: zh ? '插入公式…' : 'Insert Formula…', accelerator: 'CmdOrCtrl+Shift+E', click: () => win.webContents.send('editor:math') }
+  )
+  Menu.buildFromTemplate(items).popup({ window: win })
+}
+
 function fileManagerName(): 'finder' | 'explorer' | 'file-manager' {
   if (process.platform === 'darwin') return 'finder'
   if (process.platform === 'win32') return 'explorer'
@@ -863,12 +1037,18 @@ ipcMain.handle('tab-context-menu', (event, payload: unknown) => {
 
 // Right-click menu for a file panel entry. Native menu on purpose: no custom
 // popup to theme, keep it accessible and platform familiar.
-ipcMain.handle('entry-context-menu', (event, targetPath: unknown, kind: unknown) => {
+ipcMain.handle('entry-context-menu', (event, targetPath: unknown, kind: unknown, isOpen: unknown) => {
   const win = getWinFromEvent(event)
   if (!win || typeof targetPath !== 'string' || targetPath.length === 0) return
   const zh = getPreferredLanguage() === 'zh'
   const items: Electron.MenuItemConstructorOptions[] = []
   if (kind !== 'directory') {
+    if (isOpen === true) {
+      items.push({
+        label: zh ? '关闭当前文件' : 'Close Current File',
+        click: () => win.webContents.send('entry-menu-action', { action: 'close', path: targetPath })
+      })
+    }
     // First item: opening a document in its own tab is the reason this menu is
     // reached for (design.md).
     items.push({
@@ -890,7 +1070,40 @@ ipcMain.handle('entry-context-menu', (event, targetPath: unknown, kind: unknown)
     label: revealLabel(zh),
     click: () => shell.showItemInFolder(targetPath)
   })
+  if (kind !== 'directory') {
+    items.push({ type: 'separator' })
+    items.push({
+      label: zh ? '删除文件…' : 'Delete File…',
+      click: async () => {
+        const result = await dialog.showMessageBox(win, {
+          type: 'warning',
+          buttons: [zh ? '取消' : 'Cancel', zh ? '移到回收站' : 'Move to Trash'],
+          defaultId: 0,
+          cancelId: 0,
+          message: zh ? `确定要删除“${basename(targetPath)}”吗？` : `Delete “${basename(targetPath)}”?`,
+          detail: zh ? '文件将被移到系统回收站。' : 'The file will be moved to the system Trash.'
+        })
+        if (result.response !== 1) return
+        try {
+          await shell.trashItem(targetPath)
+          win.webContents.send('entry-menu-action', { action: 'deleted', path: targetPath })
+        } catch (error) {
+          await dialog.showMessageBox(win, {
+            type: 'error',
+            message: zh ? '无法删除文件' : 'Could Not Delete File',
+            detail: error instanceof Error ? error.message : String(error)
+          })
+        }
+      }
+    })
+  }
   Menu.buildFromTemplate(items).popup({ window: win })
+})
+
+ipcMain.handle('backup-draft', async (event, content: unknown, sourcePath: unknown) => {
+  const win = getWinFromEvent(event)
+  if (!win || typeof content !== 'string') return null
+  return backupDraft(win, content, typeof sourcePath === 'string' && sourcePath ? sourcePath : null)
 })
 
 ipcMain.handle('reveal-file', (event) => {
@@ -1384,12 +1597,56 @@ let themeMenuItems: Array<{ id: string; theme: string }> = []
 let systemFontFamilies: string[] | null = null
 let systemFontFamiliesPromise: Promise<string[]> | null = null
 
+function decodeWindowsOutput(output: Buffer): string {
+  if (output.length >= 2 && output[0] === 0xff && output[1] === 0xfe) return output.toString('utf16le')
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(output)
+  } catch {
+    return new TextDecoder('gb18030').decode(output)
+  }
+}
+
+function normalizeFontFamily(name: string): string[] {
+  const clean = name.replace(/^@/, '').replace(/\s+\((?:TrueType|OpenType)\)$/i, '')
+  return clean.split(/\s+&\s+/).map((family) => family
+    .replace(/\s+(?:Bold Italic|Bold Oblique|SemiBold Italic|SemiBold|DemiBold|Light Italic|Light|Medium Italic|Medium|Black Italic|Black|ExtraLight|Thin|Italic|Oblique|Regular)$/i, '')
+    .trim()).filter(Boolean)
+}
+
 function loadSystemFontFamilies(): Promise<string[]> {
   if (systemFontFamilies) return Promise.resolve(systemFontFamilies)
   if (systemFontFamiliesPromise) return systemFontFamiliesPromise
   systemFontFamiliesPromise = new Promise((resolve) => {
+    const finish = (families: string[]): void => {
+      const collator = new Intl.Collator(getPreferredLanguage() === 'zh' ? 'zh-Hans' : 'en', { sensitivity: 'base', numeric: true })
+      systemFontFamilies = [...new Set(families.map((name) => name.trim()).filter(Boolean))].sort(collator.compare)
+      resolve(systemFontFamilies)
+    }
+    if (process.platform === 'win32') {
+      const keys = [
+        'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts',
+        'HKCU\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts'
+      ]
+      Promise.all(keys.map((key) => new Promise<string>((done) => {
+        execFile('reg.exe', ['query', key], { encoding: 'buffer', maxBuffer: 4 * 1024 * 1024 }, (error, stdout) => {
+          done(error ? '' : decodeWindowsOutput(stdout))
+        })
+      }))).then((outputs) => {
+        const families: string[] = []
+        for (const output of outputs) {
+          for (const line of output.split(/\r?\n/)) {
+            const match = line.match(/^\s{4}(.+?)\s+REG_(?:SZ|EXPAND_SZ)\s+/)
+            if (match) families.push(...normalizeFontFamily(match[1]))
+          }
+        }
+        finish(families)
+      }).catch(() => finish([]))
+      return
+    }
     if (process.platform !== 'darwin') {
-      resolve([])
+      execFile('fc-list', ['--format=%{family}\n'], { maxBuffer: 4 * 1024 * 1024, timeout: 15000 }, (err, stdout) => {
+        finish(err ? [] : stdout.split('\n').flatMap((line) => line.split(',')).map((name) => name.trim()))
+      })
       return
     }
     const script = [
@@ -1406,12 +1663,11 @@ function loadSystemFontFamilies(): Promise<string[]> {
           console.error('[font-list] osascript failed:', (err as NodeJS.ErrnoException).message)
           throw err
         }
-        const collator = new Intl.Collator(app.getLocale().startsWith('zh') ? 'zh-Hans' : 'en', { sensitivity: 'base', numeric: true })
-        systemFontFamilies = [...new Set(stdout.split('\n').map((s) => s.trim()).filter(Boolean))].sort(collator.compare)
+        finish(stdout.split('\n'))
+        return
       } catch {
-        systemFontFamilies = []
+        finish([])
       }
-      resolve(systemFontFamilies)
     })
   })
   return systemFontFamiliesPromise
@@ -1512,17 +1768,21 @@ ipcMain.handle('get-language', () => getPreferredLanguage())
 // Menu — targets the focused window
 
 function setAsDefaultApp(): void {
+  if (process.platform === 'win32') {
+    void shell.openExternal('ms-settings:defaultapps')
+    return
+  }
   if (process.platform !== 'darwin') {
-    dialog.showMessageBox({
+    void dialog.showMessageBox({
       type: 'info',
-      message: 'This feature is available on macOS only.'
+      message: uiText('请在系统设置中选择默认应用。', 'Choose the default app in System Settings.')
     })
     return
   }
 
   const script = `
     ObjC.import('CoreServices');
-    var bundleID = 'ai.marswave.colamd';
+    var bundleID = 'com.mercury321.colamd.mercury';
     var exts = ['md', 'markdown', 'mdown', 'mkd', 'txt'];
     var results = [];
     for (var i = 0; i < exts.length; i++) {
@@ -1618,15 +1878,15 @@ function buildMenu(): void {
         newTab: '新建标签页', closeTab: '关闭标签页',
         recentOpen: '最近打开', restoreOnLaunch: '启动时打开上次文档', clearRecent: '清除最近记录', noRecent: '没有最近打开的文件',
         exportPDF: '导出 PDF...', exportHTML: '导出 HTML...', exportWord: '导出 Word...', exportImageDesktop: '导出图片（电脑阅读）...', exportImageMobile: '导出图片（手机阅读）...', find: '查找',
-        setDefault: '设置为默认应用...',
+        setDefault: '设置为默认 Markdown 编辑器...', autoBackup: '自动保存草稿副本', autoBackupLocation: '设置草稿保存位置...', openAutoBackup: '打开 Out 目录',
         insertFormula: '插入公式', filePanel: '显示 / 隐藏文件列表', sourceMode: '切换 Markdown 源码',
         light: '浅色', dark: '深色', elegant: '雅致',
         sepia: '羊皮纸', notion: '简白', bear: '熊红', writer: '作家',
         solarizedDark: '夜航', nord: '极地', gruvbox: '暖木', dracula: '德古拉', midnight: '午夜',
         importTheme: '导入主题...', whatsNew: '新功能演示',
-        cheatsheet: 'Markdown 语法', about: '关于 ColaMD', checkForUpdates: '检查更新...', updateAvailable: '发现新版本', close: '关闭窗口',
+        cheatsheet: 'Markdown 语法', about: '关于 ColaMD Mercury定制版', checkForUpdates: '检查更新...', updateAvailable: '发现新版本', close: '关闭窗口',
         undo: '撤销', redo: '重做', cut: '剪切', copy: '复制', paste: '粘贴', selectAll: '全选',
-        actualSize: '实际大小', zoomIn: '放大', zoomOut: '缩小', fullscreen: '切换全屏',
+        actualSize: '实际大小', zoomIn: '放大', zoomOut: '缩小', fullscreen: '切换全屏', alwaysOnTop: '窗口置顶', minimizeToTray: '最小化到系统托盘',
         fontSettings: '编辑器字体…',
         language: '界面语言', chinese: '中文', english: 'English',
         hide: '隐藏 ColaMD', hideOthers: '隐藏其他应用', showAll: '显示全部', quit: '退出 ColaMD',
@@ -1638,15 +1898,15 @@ function buildMenu(): void {
         newTab: 'New Tab', closeTab: 'Close Tab',
         recentOpen: 'Open Recent', restoreOnLaunch: 'Reopen last document at launch', clearRecent: 'Clear Recent', noRecent: 'No recent files',
         exportPDF: 'Export PDF...', exportHTML: 'Export HTML...', exportWord: 'Export Word...', exportImageDesktop: 'Export Image (Desktop)...', exportImageMobile: 'Export Image (Mobile)...', find: 'Find',
-        setDefault: 'Set as Default...',
+        setDefault: 'Set as Default Markdown Editor...', autoBackup: 'Auto-save Draft Copy', autoBackupLocation: 'Set Draft Location...', openAutoBackup: 'Open Out Folder',
         insertFormula: 'Insert Formula', filePanel: 'Show / Hide File List', sourceMode: 'Toggle Markdown Source',
         light: 'Light', dark: 'Dark', elegant: 'Elegant',
         sepia: 'Sepia', notion: 'Notion', bear: 'Bear', writer: 'Writer',
         solarizedDark: 'Solarized Dark', nord: 'Nord', gruvbox: 'Gruvbox', dracula: 'Dracula', midnight: 'Midnight',
         importTheme: 'Import Theme...', whatsNew: "What's New",
-        cheatsheet: 'Markdown Syntax', about: 'About ColaMD', checkForUpdates: 'Check for Updates...', updateAvailable: 'Update Available', close: 'Close Window',
+        cheatsheet: 'Markdown Syntax', about: 'About ColaMD Mercury CE', checkForUpdates: 'Check for Updates...', updateAvailable: 'Update Available', close: 'Close Window',
         undo: 'Undo', redo: 'Redo', cut: 'Cut', copy: 'Copy', paste: 'Paste', selectAll: 'Select All',
-        actualSize: 'Actual Size', zoomIn: 'Zoom In', zoomOut: 'Zoom Out', fullscreen: 'Toggle Full Screen',
+        actualSize: 'Actual Size', zoomIn: 'Zoom In', zoomOut: 'Zoom Out', fullscreen: 'Toggle Full Screen', alwaysOnTop: 'Always on Top', minimizeToTray: 'Minimize to System Tray',
         fontSettings: 'Editor Font…',
         language: 'Language', chinese: '中文', english: 'English',
         hide: 'Hide ColaMD', hideOthers: 'Hide Others', showAll: 'Show All', quit: 'Quit ColaMD',
@@ -1709,7 +1969,7 @@ function buildMenu(): void {
         {
           label: labels.newFile,
           accelerator: 'CmdOrCtrl+N',
-          click: () => createWindow()
+          click: () => sendToFocused('menu-new-tab')
         },
         {
           label: labels.open,
@@ -1737,6 +1997,18 @@ function buildMenu(): void {
           label: labels.clearRecent,
           click: () => clearRecentFiles()
         },
+        { type: 'separator' },
+        {
+          label: labels.autoBackup,
+          type: 'checkbox' as const,
+          checked: mercurySettings.autoBackupEnabled,
+          click: (item) => {
+            mercurySettings.autoBackupEnabled = item.checked
+            persistMercurySettings()
+          }
+        },
+        { label: labels.autoBackupLocation, click: () => { void chooseAutoBackupDirectory() } },
+        { label: labels.openAutoBackup, click: openAutoBackupDirectory },
         { type: 'separator' },
         {
           label: labels.newTab,
@@ -1842,6 +2114,9 @@ function buildMenu(): void {
           accelerator: 'CmdOrCtrl+/',
           click: () => sendToFocused('toggle-source-mode')
         },
+        { type: 'separator' },
+        { label: labels.alwaysOnTop, type: 'checkbox' as const, checked: mercurySettings.alwaysOnTop, click: (item) => setAlwaysOnTop(item.checked) },
+        { label: labels.minimizeToTray, type: 'checkbox' as const, checked: mercurySettings.minimizeToTray, click: (item) => setMinimizeToTray(item.checked) },
         { type: 'separator' },
         { label: labels.fontSettings, click: () => sendToFocused('open-font-settings') },
         {
@@ -2067,6 +2342,7 @@ app.whenReady().then(() => {
   markStartup('app-ready')
   ensureThemesDir()
   buildMenu()
+  syncTray()
 
   // Check command line args for file paths
   const args = process.argv.slice(app.isPackaged ? 1 : 2)

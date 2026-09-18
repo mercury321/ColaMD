@@ -195,16 +195,21 @@ export function showFontSettingsModal(): void {
   const preview = document.createElement('div')
   preview.className = 'font-modal-preview'
 
-  const previewText = document.createElement('span')
-  preview.appendChild(previewText)
+  const previewTitle = document.createElement('strong')
+  const previewBody = document.createElement('p')
+  const previewMixed = document.createElement('p')
+  const previewQuote = document.createElement('blockquote')
+  preview.append(previewTitle, previewBody, previewMixed, previewQuote)
 
   const updatePreview = (): void => {
     const family = sanitizeFamily(familyInput.value)
     const size = parseInt(sizeInput.value, 10)
     preview.style.fontFamily = family || 'inherit'
     preview.style.fontSize = size ? `${Math.min(Math.max(size, 10), 40)}px` : '16px'
-    previewText.textContent =
-      'The quick brown fox jumps over the lazy dog. 中文字体排版预览 0123456789'
+    previewTitle.textContent = zh ? '让文字拥有合适的气质' : 'Give words the right character'
+    previewBody.textContent = zh ? '字体决定阅读的节奏，也影响长文在屏幕上的清晰度与舒适度。' : 'Typography shapes reading rhythm, clarity, and comfort on screen.'
+    previewMixed.textContent = zh ? '重点预览：中文、English、数字 123456，以及标点「，。！？」。' : 'Preview: English, 中文, numbers 123456, and punctuation.'
+    previewQuote.textContent = zh ? '好的排版，让文字安静地抵达读者。' : 'Good typography lets the words reach the reader quietly.'
   }
   familyInput.addEventListener('input', updatePreview)
   sizeInput.addEventListener('input', updatePreview)

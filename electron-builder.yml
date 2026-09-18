@@ -1,5 +1,5 @@
-appId: ai.marswave.colamd
-productName: ColaMD
+appId: com.mercury321.colamd.mercury
+productName: ColaMD Mercury CE
 copyright: Copyright © 2024-2026 marswave.ai
 
 directories:
@@ -27,6 +27,8 @@ electronLanguages:
   - zh_CN
 
 extraResources:
+  - from: resources/icon.png
+    to: icon.png
   - from: resources/templates
     to: templates
   - from: resources/demo
@@ -39,15 +41,15 @@ afterPack: ./scripts/afterPack.js
 
 fileAssociations:
   - ext: md
-    name: Markdown Document
+    name: ColaMD Mercury定制版 Markdown Document
     role: Editor
     mimeType: text/markdown
   - ext: markdown
-    name: Markdown Document
+    name: ColaMD Mercury定制版 Markdown Document
     role: Editor
     mimeType: text/markdown
   - ext: txt
-    name: Text Document
+    name: ColaMD Mercury定制版 Text Document
     role: Editor
     mimeType: text/plain
 
@@ -105,5 +107,5 @@ nsis:
 
 publish:
   provider: github
-  owner: marswaveai
+  owner: mercury321
   repo: ColaMD

@@ -1,4 +1,6 @@
-# ColaMD
+# ColaMD Mercury CE
+
+> A Mercury321 custom edition based on [marswaveai/ColaMD](https://github.com/marswaveai/ColaMD) v2.4.3.
 
 > A free, elegant Markdown editor anyone can pick up. No toolbars, no clutter, and the file on disk is always what you see.
 
@@ -11,7 +13,7 @@ It offers true WYSIWYG editing, 12 built-in themes, rich-text copy, smart line b
 Whatever writes the file (an AI agent such as Claude Code or Codex, a script, or another editor), ColaMD shows the new content right away. No reopening, no manual refresh.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub release](https://img.shields.io/github/release/marswaveai/colamd.svg)](https://github.com/marswaveai/colamd/releases)
+[![GitHub release](https://img.shields.io/github/release/mercury321/colamd.svg)](https://github.com/mercury321/colamd/releases)
 
 [Download](#download) | [Features](#features)
 

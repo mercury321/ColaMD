@@ -49,6 +49,7 @@ body {
   --row-icon-color: color-mix(in srgb, var(--text-muted) 55%, transparent);
   --search-match-bg: color-mix(in srgb, var(--link-color) 18%, transparent);
   --search-match-current-bg: color-mix(in srgb, var(--link-color) 32%, transparent);
+  --unsaved-color: color-mix(in srgb, #2684ff 78%, var(--text-color));
 }
 
 #titlebar {
@@ -260,8 +261,7 @@ body.platform-win #titlebar {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: currentColor;
-  opacity: 0.5;
+  background: var(--unsaved-color);
 }
 
 /* The close button floats over the tab: no width, no padding, nothing reserved
@@ -1552,6 +1552,26 @@ body.has-custom-font #source-editor {
   background: var(--code-bg);
   line-height: 1.7;
   word-break: break-word;
+}
+
+.font-modal-preview strong {
+  display: block;
+  font-size: 1.35em;
+  line-height: 1.35;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.font-modal-preview p {
+  margin: 6px 0;
+}
+
+.font-modal-preview blockquote {
+  margin: 8px 0 0;
+  padding-left: 10px;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--link-color);
 }
 
 .font-modal-footer {

@@ -29,7 +29,8 @@ export interface ElectronAPI {
   openFilePath: (path: string) => Promise<{ path: string; content: string } | null>
   getFileManagerName: () => Promise<FileManagerName>
   revealFile: () => Promise<boolean>
-  showEntryContextMenu: (path: string, kind: 'file' | 'directory') => Promise<void>
+  showEntryContextMenu: (path: string, kind: 'file' | 'directory', isOpen: boolean) => Promise<void>
+  onEntryMenuAction: (callback: (payload: { action: 'close' | 'deleted'; path: string }) => void) => void
   showTabContextMenu: (payload: { tabId: string; filePath: string | null; canCloseOthers: boolean; canCloseRight: boolean }) => Promise<void>
   onTabMenuAction: (callback: (payload: { action: string; tabId: string }) => void) => void
   listSiblings: () => Promise<SiblingFile[] | null>
@@ -41,6 +42,7 @@ export interface ElectronAPI {
   onOpenInNewTab: (callback: (path: string) => void) => void
   saveFile: (content: string, expectedPath?: string, rebuildMenu?: boolean, autosave?: boolean) => Promise<string | null>
   saveFileAs: (content: string, expectedPath?: string) => Promise<string | null>
+  backupDraft: (content: string, sourcePath: string | null) => Promise<string | null>
   exportPDF: () => Promise<boolean>
   exportHTML: (snapshot: { content: string; html: string; styles: string; bodyClass: string }) => Promise<boolean>
   exportDOCX: (content: string) => Promise<boolean>
@@ -100,7 +102,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openFilePath: (path: string) => ipcRenderer.invoke('open-file-path', path),
   getFileManagerName: () => ipcRenderer.invoke('get-file-manager-name') as Promise<FileManagerName>,
   revealFile: () => ipcRenderer.invoke('reveal-file') as Promise<boolean>,
-  showEntryContextMenu: (path: string, kind: 'file' | 'directory') => ipcRenderer.invoke('entry-context-menu', path, kind) as Promise<void>,
+  showEntryContextMenu: (path: string, kind: 'file' | 'directory', isOpen: boolean) => ipcRenderer.invoke('entry-context-menu', path, kind, isOpen) as Promise<void>,
+  onEntryMenuAction: (callback: (payload: { action: 'close' | 'deleted'; path: string }) => void) => {
+    ipcRenderer.on('entry-menu-action', (_event, payload: { action: 'close' | 'deleted'; path: string }) => callback(payload))
+  },
   showTabContextMenu: (payload: { tabId: string; filePath: string | null; canCloseOthers: boolean; canCloseRight: boolean }) => ipcRenderer.invoke('tab-context-menu', payload) as Promise<void>,
   onTabMenuAction: (callback: (payload: { action: string; tabId: string }) => void) => {
     ipcRenderer.on('tab-menu-action', (_event, payload: { action: string; tabId: string }) => callback(payload))
@@ -118,6 +123,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   saveFile: (content: string, expectedPath?: string, rebuildMenu?: boolean, autosave?: boolean) => ipcRenderer.invoke('save-file', content, expectedPath, rebuildMenu, autosave),
   saveFileAs: (content: string, expectedPath?: string) => ipcRenderer.invoke('save-file-as', content, expectedPath),
+  backupDraft: (content: string, sourcePath: string | null) => ipcRenderer.invoke('backup-draft', content, sourcePath) as Promise<string | null>,
   exportPDF: () => ipcRenderer.invoke('export-pdf'),
   exportHTML: (snapshot: { content: string; html: string; styles: string; bodyClass: string }) => ipcRenderer.invoke('export-html', snapshot),
   exportDOCX: (content: string) => ipcRenderer.invoke('export-docx', content),
