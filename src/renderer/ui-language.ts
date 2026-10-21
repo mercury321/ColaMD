@@ -1,6 +1,6 @@
 export type UiLanguage = 'zh' | 'en'
 
-let language: UiLanguage = navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en'
+let language: UiLanguage = 'zh'
 
 export function getUiLanguage(): UiLanguage {
   return language

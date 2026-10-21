@@ -614,9 +614,7 @@ export function runFormatCommand(id: FormatCommandId): void {
 }
 
 function defaultContent(): string {
-  return isChinese()
-    ? '# **欢迎使用 ColaMD**\n\n开始写作...\n'
-    : '# **Welcome to ColaMD**\n\nStart typing here...\n'
+  return ''
 }
 
 export async function createEditor(

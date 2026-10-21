@@ -34,6 +34,34 @@ function sanitizeFamily(family: string): string {
   return family.replace(/[{};<>@]/g, '').trim()
 }
 
+const GENERIC_FONT_FAMILIES = new Set([
+  'serif',
+  'sans-serif',
+  'monospace',
+  'cursive',
+  'fantasy',
+  'system-ui',
+  'ui-serif',
+  'ui-sans-serif',
+  'ui-monospace',
+  'ui-rounded',
+  'emoji',
+  'math',
+  'fangsong'
+])
+
+function toCssFontFamily(family: string): string {
+  return sanitizeFamily(family)
+    .split(',')
+    .map((part) => part.trim().replace(/^(['"])(.*)\1$/, '$2'))
+    .filter(Boolean)
+    .map((part) => {
+      if (GENERIC_FONT_FAMILIES.has(part.toLowerCase())) return part.toLowerCase()
+      return `"${part.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+    })
+    .join(', ')
+}
+
 export function applyEditorFont(prefs: EditorFontPrefs | null): void {
   const body = document.body
   if (!prefs || (!prefs.family && !prefs.size)) {
@@ -44,7 +72,7 @@ export function applyEditorFont(prefs: EditorFontPrefs | null): void {
   }
   body.classList.add('has-custom-font')
   const family = sanitizeFamily(prefs.family)
-  if (family) body.style.setProperty('--editor-font', family)
+  if (family) body.style.setProperty('--editor-font', toCssFontFamily(family))
   else body.style.removeProperty('--editor-font')
   if (prefs.size >= 10 && prefs.size <= 40) body.style.setProperty('--editor-font-size', `${prefs.size}px`)
   else body.style.removeProperty('--editor-font-size')
@@ -99,16 +127,29 @@ export function showFontSettingsModal(): void {
   familyInput.placeholder = 'LXGW WenKai, Songti SC, Menlo…'
   familyInput.value = saved?.family ?? ''
   familyInput.autocomplete = 'off'
+  familyInput.setAttribute('role', 'combobox')
+  familyInput.setAttribute('aria-autocomplete', 'list')
+  familyInput.setAttribute('aria-expanded', 'false')
+
+  const familyControl = document.createElement('div')
+  familyControl.className = 'font-modal-control'
+
+  const pickerButton = document.createElement('button')
+  pickerButton.type = 'button'
+  pickerButton.className = 'font-modal-picker-btn'
+  pickerButton.setAttribute('aria-label', zh ? '展开系统字体列表' : 'Show system font list')
+  pickerButton.innerHTML = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"></polyline></svg>'
 
   // Scrollable custom font dropdown (datalist is unscrollable and can't be styled)
   const fontList = document.createElement('div')
   fontList.className = 'font-modal-list'
   fontList.style.display = 'none'
+  fontList.setAttribute('role', 'listbox')
   let fontNames: string[] = []
   void window.electronAPI.listSystemFonts?.().then((fonts) => {
     if (!fonts.length) return
     fontNames = fonts
-    if (document.activeElement === familyInput) renderFontList(familyInput.value)
+    if (document.activeElement === familyInput) renderFontList('')
   })
 
   let activeIndex = -1
@@ -117,7 +158,7 @@ export function showFontSettingsModal(): void {
     const q = query.trim().toLowerCase()
     const items = (q ? fontNames.filter((f) => f.toLowerCase().includes(q)) : fontNames).slice(0, 1000)
     if (!items.length) {
-      fontList.style.display = 'none'
+      hideFontList()
       return
     }
     activeIndex = -1
@@ -125,6 +166,7 @@ export function showFontSettingsModal(): void {
       const item = document.createElement('div')
       item.className = 'font-modal-list-item'
       item.textContent = name
+      item.setAttribute('role', 'option')
       item.addEventListener('mousedown', (e) => {
         e.preventDefault()
         familyInput.value = name
@@ -134,11 +176,13 @@ export function showFontSettingsModal(): void {
       return item
     }))
     fontList.style.display = 'block'
+    familyInput.setAttribute('aria-expanded', 'true')
   }
 
   function hideFontList(): void {
     fontList.style.display = 'none'
     activeIndex = -1
+    familyInput.setAttribute('aria-expanded', 'false')
   }
 
   let blurTimer: ReturnType<typeof setTimeout> | null = null
@@ -147,7 +191,10 @@ export function showFontSettingsModal(): void {
       clearTimeout(blurTimer)
       blurTimer = null
     }
-    renderFontList(familyInput.value)
+    renderFontList('')
+  })
+  familyInput.addEventListener('mousedown', () => {
+    if (fontList.style.display === 'none') renderFontList('')
   })
   familyInput.addEventListener('input', () => {
     renderFontList(familyInput.value)
@@ -176,6 +223,16 @@ export function showFontSettingsModal(): void {
     }
   })
 
+  pickerButton.addEventListener('mousedown', (e) => e.preventDefault())
+  pickerButton.addEventListener('click', () => {
+    if (fontList.style.display === 'none') {
+      familyInput.focus()
+      renderFontList('')
+    } else {
+      hideFontList()
+    }
+  })
+
   const sizeCol = document.createElement('div')
   sizeCol.className = 'font-modal-col font-modal-col-size'
 
@@ -195,16 +252,21 @@ export function showFontSettingsModal(): void {
   const preview = document.createElement('div')
   preview.className = 'font-modal-preview'
 
-  const previewText = document.createElement('span')
-  preview.appendChild(previewText)
+  const previewTitle = document.createElement('strong')
+  const previewBody = document.createElement('p')
+  const previewMixed = document.createElement('p')
+  const previewQuote = document.createElement('blockquote')
+  preview.append(previewTitle, previewBody, previewMixed, previewQuote)
 
   const updatePreview = (): void => {
     const family = sanitizeFamily(familyInput.value)
     const size = parseInt(sizeInput.value, 10)
-    preview.style.fontFamily = family || 'inherit'
+    preview.style.fontFamily = family ? toCssFontFamily(family) : 'inherit'
     preview.style.fontSize = size ? `${Math.min(Math.max(size, 10), 40)}px` : '16px'
-    previewText.textContent =
-      'The quick brown fox jumps over the lazy dog. 中文字体排版预览 0123456789'
+    previewTitle.textContent = zh ? '让文字拥有合适的气质' : 'Give words the right character'
+    previewBody.textContent = zh ? '字体决定阅读的节奏，也影响长文在屏幕上的清晰度与舒适度。' : 'Typography shapes reading rhythm, clarity, and comfort on screen.'
+    previewMixed.textContent = zh ? '重点预览：中文、English、数字 123456，以及标点「，。！？」。' : 'Preview: English, 中文, numbers 123456, and punctuation.'
+    previewQuote.textContent = zh ? '好的排版，让文字安静地抵达读者。' : 'Good typography lets the words reach the reader quietly.'
   }
   familyInput.addEventListener('input', updatePreview)
   sizeInput.addEventListener('input', updatePreview)
@@ -246,7 +308,8 @@ export function showFontSettingsModal(): void {
     overlay.remove()
   })
 
-  familyCol.append(familyLabel, familyInput, fontList)
+  familyControl.append(familyInput, pickerButton, fontList)
+  familyCol.append(familyLabel, familyControl)
   sizeCol.append(sizeLabel, sizeInput)
   row.append(familyCol, sizeCol)
   footerLeft.appendChild(resetBtn)

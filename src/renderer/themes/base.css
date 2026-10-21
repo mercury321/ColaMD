@@ -61,6 +61,7 @@ body {
      that lays text out reads this one value (the editor, source mode, and an
      export snapshot, which carries the body class with it). */
   --editor-column-width: 780px;
+  --unsaved-color: color-mix(in srgb, #2684ff 78%, var(--text-color));
 }
 
 /* Text Width, from the View menu. `standard` needs no class: it is the value
@@ -280,8 +281,7 @@ body.platform-win #titlebar {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: currentColor;
-  opacity: 0.5;
+  background: var(--unsaved-color);
 }
 
 /* The close button floats over the tab: no width, no padding, nothing reserved
@@ -1567,6 +1567,10 @@ body.has-custom-font #source-editor {
   position: relative;
 }
 
+.font-modal-control {
+  position: relative;
+}
+
 .font-modal-col-size {
   flex: none;
   width: 84px;
@@ -1581,6 +1585,33 @@ body.has-custom-font #source-editor {
   font-family: inherit;
   padding: 8px 10px;
   font-size: 13px;
+}
+
+.font-modal .font-modal-input {
+  padding-right: 34px;
+}
+
+.font-modal-picker-btn {
+  position: absolute;
+  top: 50%;
+  right: 7px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.font-modal-picker-btn:hover,
+.font-modal-picker-btn:focus-visible {
+  background: var(--code-bg);
+  color: var(--text-color);
+  outline: none;
 }
 
 .font-modal .font-modal-size {
@@ -1624,6 +1655,26 @@ body.has-custom-font #source-editor {
   background: var(--code-bg);
   line-height: 1.7;
   word-break: break-word;
+}
+
+.font-modal-preview strong {
+  display: block;
+  font-size: 1.35em;
+  line-height: 1.35;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.font-modal-preview p {
+  margin: 6px 0;
+}
+
+.font-modal-preview blockquote {
+  margin: 8px 0 0;
+  padding-left: 10px;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--link-color);
 }
 
 .font-modal-footer {

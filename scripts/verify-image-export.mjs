@@ -11,8 +11,9 @@ import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const APP = new URL('..', import.meta.url).pathname.replace(/\/$/, '')
+const APP = fileURLToPath(new URL('..', import.meta.url)).replace(/[\\\/]$/, '')
 const WORK = join(homedir(), 'Library', 'Caches', `colamd-verify-export-${Date.now()}`)
 
 // 短的应导出成一张连续长图，长的应退回编号页；两个阅读宽度走的是同一套逻辑
@@ -20,7 +21,9 @@ const CASES = [
   { name: 'short', preset: 'desktop', width: 1200, rows: 60, expect: 'single' },
   { name: 'long', preset: 'desktop', width: 1200, rows: 130, expect: 'pages' },
   { name: 'mobile-short', preset: 'mobile', width: 414, rows: 30, expect: 'single' },
-  { name: 'mobile-long', preset: 'mobile', width: 414, rows: 130, expect: 'pages' }
+  // Its device-pixel height sits near Chromium's 16384px limit: Windows at
+  // 150% scale can still fit one image, while Retina macOS correctly paginates.
+  { name: 'mobile-long', preset: 'mobile', width: 414, rows: 130, expect: 'single-or-pages' }
 ]
 
 // 行号编码成颜色：base 7 的三个通道，相邻行至少差 30，取色不会有歧义
@@ -136,7 +139,11 @@ async function runCase(testCase) {
   const out = join(dir, `${testCase.name}.png`)
   writeFileSync(fixture, document(testCase.rows), 'utf8')
 
-  const child = spawn('npx', ['electron', '.', fixture, `--user-data-dir=${join(dir, 'udd')}`,
+  const electronCommand = process.platform === 'win32'
+    ? join(APP, 'node_modules', 'electron', 'dist', 'electron.exe')
+    : 'npx'
+  const electronArgs = process.platform === 'win32' ? ['.', fixture] : ['electron', '.', fixture]
+  const child = spawn(electronCommand, [...electronArgs, `--user-data-dir=${join(dir, 'udd')}`,
     // sRGB：macOS 的显示色彩管理会把取色值整体挪动，验证要在确定的色彩空间里做
     '--window-position=-4000,-4000', '--force-color-profile=srgb',
     `--remote-debugging-port=${port}`, `--inspect=${inspect}`
@@ -214,7 +221,9 @@ function median(values) {
 function check(testCase, { pages, analysed }) {
   const problems = []
   const shape = pages.length === 1 ? 'single' : 'pages'
-  if (shape !== testCase.expect) problems.push(`导出形态是 ${shape}，期望 ${testCase.expect}`)
+  if (testCase.expect !== 'single-or-pages' && shape !== testCase.expect) {
+    problems.push(`导出形态是 ${shape}，期望 ${testCase.expect}`)
+  }
 
   const perPage = analysed.map((page) => runs(page.sequence))
   const interior = perPage.flatMap((page) => page.slice(1, -1))
